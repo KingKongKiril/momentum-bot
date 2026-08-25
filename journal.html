@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper-Trading — Journal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --papier:#F2F4F1;--raster:#D6DCD4;--tinte:#141A16;--grau:#5E6A61;
+  --signal:#1F4B7A;--verlust:#9C3B2C;--gewinn:#2E6B4F;--linie:#C3CBC1;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--papier);
+  background-image:linear-gradient(var(--raster) .5px,transparent .5px),
+    linear-gradient(90deg,var(--raster) .5px,transparent .5px);
+  background-size:26px 26px;
+  color:var(--tinte);font-family:"Source Serif 4",Georgia,serif;
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+.blatt{max-width:720px;margin:0 auto;padding:0 18px 80px}
+header{padding:40px 0 26px;border-bottom:2px solid var(--tinte)}
+.kennung{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--grau);margin-bottom:16px}
+h1{font-family:"Archivo Narrow",sans-serif;font-weight:700;
+  font-size:clamp(32px,8vw,50px);line-height:1;text-transform:uppercase;
+  letter-spacing:-.01em}
+h1 em{font-style:normal;color:var(--grau);display:block}
+.regel{margin-top:18px;font-size:15px;color:var(--grau);max-width:50ch}
+
+h2{font-family:"Archivo Narrow",sans-serif;font-weight:600;font-size:22px;
+  margin-bottom:12px}
+section{margin-top:40px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--grau);
+  padding-bottom:7px;border-bottom:1px solid var(--linie);margin-bottom:20px}
+
+.kacheln{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  border:1.5px solid var(--tinte);background:rgba(255,255,255,.55)}
+.kacheln div{padding:14px 10px;text-align:center;border-right:1px solid var(--linie)}
+.kacheln div:last-child{border-right:none}
+.kacheln .zahl{font-family:"Archivo Narrow",sans-serif;font-weight:700;
+  font-size:30px;line-height:1;display:block}
+.kacheln .was{font-family:"IBM Plex Mono",monospace;font-size:9.5px;font-weight:500;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--grau);
+  margin-top:7px;display:block}
+
+fieldset{border:1.5px solid var(--tinte);padding:18px;background:rgba(255,255,255,.5)}
+legend{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;
+  letter-spacing:.13em;text-transform:uppercase;padding:0 8px}
+label{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--grau);margin:14px 0 5px}
+input,textarea{width:100%;font-family:"IBM Plex Mono",monospace;font-size:14px;
+  padding:9px 10px;border:1px solid var(--tinte);border-radius:2px;
+  background:#fff;color:var(--tinte)}
+textarea{resize:vertical;min-height:74px;line-height:1.5}
+input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--signal);
+  outline-offset:1px}
+.hinweis{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--grau);
+  margin-top:6px;line-height:1.5}
+button{font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;padding:11px 16px;
+  border:1.5px solid var(--tinte);border-radius:2px;background:var(--tinte);
+  color:var(--papier);cursor:pointer;margin-top:18px}
+button.sek{background:transparent;color:var(--tinte);margin-right:8px}
+button:hover{opacity:.85}
+
+table{width:100%;border-collapse:collapse;margin-top:14px;
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;
+  background:rgba(255,255,255,.5)}
+th{text-align:right;font-size:9.5px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--grau);padding:8px 8px;
+  border-bottom:1.5px solid var(--tinte)}
+th:first-child,td:first-child{text-align:left}
+td{padding:8px;border-bottom:1px solid var(--linie);text-align:right}
+.pos{color:var(--gewinn)}.neg{color:var(--verlust)}
+.offen{color:var(--grau);font-style:italic}
+.leer{padding:26px 0;color:var(--grau);font-size:15px}
+
+.notiz{border-left:3px solid var(--signal);padding:2px 0 2px 16px;margin:20px 0;
+  font-size:15px}
+.warn{border-left-color:var(--verlust)}
+footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--tinte);
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.05em;
+  line-height:1.9;color:var(--grau);text-transform:uppercase}
+@media(max-width:520px){
+  .kacheln{grid-template-columns:1fr 1fr}
+  .kacheln div:nth-child(2n){border-right:none}
+  table{font-size:11.5px}td,th{padding:7px 5px}
+}
+</style>
+</head>
+<body>
+<div class="blatt">
+<p style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding-top:18px"><a href="start.html" style="color:#5E6A61;text-decoration:none">← Übersicht</a></p>
+
+<header>
+  <div class="kennung">Paper-Trading · Multi-Asset Momentum</div>
+  <h1>Journal<em>Kein echtes Geld</em></h1>
+  <p class="regel">
+    Ein eingetragenes Signal wird nie nachträglich geändert. Wer seine
+    Prognosen im Nachhinein korrigiert, misst nichts mehr.
+  </p>
+</header>
+
+<div class="kacheln" id="kacheln"></div>
+
+<section>
+  <div class="eyebrow">Neuer Eintrag — am ersten Handelstag des Monats</div>
+  <fieldset>
+    <legend>Signal eintragen</legend>
+    <label for="monat">Signalbasis (Monatsende)</label>
+    <input type="month" id="monat">
+
+    <label for="positionen">Positionen und Gewichte</label>
+    <textarea id="positionen" placeholder="SPY 0.28&#10;IWM 0.24&#10;GLD 0.26&#10;DBC 0.22"></textarea>
+    <p class="hinweis">Ein Ticker pro Zeile, Gewicht als Dezimalzahl. Ausgabe von
+      <code>python src/paper.py signal</code> übernehmen.</p>
+
+    <button id="eintragen">Eintragen</button>
+  </fieldset>
+</section>
+
+<section>
+  <div class="eyebrow">Verlauf</div>
+  <div id="tabelle"></div>
+  <div id="bewertung"></div>
+</section>
+
+<section>
+  <div class="eyebrow">Einordnung</div>
+  <div id="urteil"></div>
+</section>
+
+<section>
+  <div class="eyebrow">Daten</div>
+  <p style="font-size:15px;color:var(--grau);max-width:52ch">
+    Das Journal liegt nur in diesem Browser. Exportiere es regelmäßig,
+    sonst ist es beim Leeren des Browserspeichers weg.
+  </p>
+  <button class="sek" id="export">Exportieren</button>
+  <button class="sek" id="import">Importieren</button>
+</section>
+
+<footer>
+  Forschungsprojekt zu Bildungszwecken · Keine Anlageberatung<br>
+  Simulierte Positionen ohne Kapitaleinsatz
+</footer>
+</div>
+
+<script>
+const BACKTEST_CAGR = 0.0833;
+const MONATS_STD = 0.028;
+const SCHLUESSEL = "paper_journal_v1";
+
+let speicherWarnung = false;
+function laden(){
+  try{ return JSON.parse(localStorage.getItem(SCHLUESSEL)) || []; }
+  catch(e){ speicherWarnung = true; return window.__journal || []; }
+}
+function sichern(d){
+  window.__journal = d;
+  try{ localStorage.setItem(SCHLUESSEL, JSON.stringify(d)); }
+  catch(e){ speicherWarnung = true; }
+}
+
+let journal = laden();
+
+function prozent(v){
+  const s = (v*100).toFixed(2).replace('.',',');
+  return (v>=0?'+':'') + s + ' %';
+}
+
+function zeichnen(){
+  const bewertet = journal.filter(e => e.rendite !== null && e.rendite !== undefined);
+  const n = bewertet.length;
+  const kum = bewertet.reduce((a,e) => a*(1+e.rendite), 1) - 1;
+  const treffer = n ? bewertet.filter(e => e.rendite > 0).length / n : 0;
+
+  document.getElementById('kacheln').innerHTML = `
+    <div><span class="zahl">${journal.length}</span><span class="was">Einträge</span></div>
+    <div><span class="zahl">${n}</span><span class="was">Bewertet</span></div>
+    <div><span class="zahl">${n ? prozent(kum).replace(' %','') : '—'}</span><span class="was">Kumuliert %</span></div>
+    <div><span class="zahl">${n ? Math.round(treffer*100) : '—'}</span><span class="was">Positive %</span></div>`;
+
+  const t = document.getElementById('tabelle');
+  if(!journal.length){
+    t.innerHTML = '<p class="leer">Noch keine Einträge. Der erste Monat ist der wichtigste — ab dann läuft die Uhr.</p>';
+  } else {
+    const zeilen = journal.slice().sort((a,b) => b.basis.localeCompare(a.basis)).map(e => {
+      const pos = Object.entries(e.gewichte)
+        .filter(([,w]) => w > 0.001)
+        .map(([t,w]) => `${t} ${Math.round(w*100)}%`).join(' · ');
+      const r = (e.rendite === null || e.rendite === undefined)
+        ? '<span class="offen">offen</span>'
+        : `<span class="${e.rendite>=0?'pos':'neg'}">${prozent(e.rendite)}</span>`;
+      return `<tr><td>${e.basis}</td><td style="text-align:left">${pos}</td><td>${r}</td></tr>`;
+    }).join('');
+    t.innerHTML = `<table><thead><tr><th>Basis</th><th style="text-align:left">Positionen</th><th>Rendite</th></tr></thead><tbody>${zeilen}</tbody></table>`;
+  }
+
+  // Offene Einträge nachtragen
+  const offen = journal.filter(e => e.rendite === null || e.rendite === undefined);
+  const b = document.getElementById('bewertung');
+  b.innerHTML = offen.length ? `
+    <fieldset style="margin-top:22px"><legend>Ergebnis nachtragen</legend>
+      <label for="welcher">Eintrag</label>
+      <select id="welcher" style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:14px;padding:9px 10px;border:1px solid var(--tinte);border-radius:2px;background:#fff">
+        ${offen.map(e => `<option value="${e.basis}">${e.basis}</option>`).join('')}
+      </select>
+      <label for="rendite">Monatsrendite in Prozent</label>
+      <input type="number" id="rendite" step="0.01" placeholder="z. B. 1.85 oder -0.60">
+      <p class="hinweis">Aus <code>python src/paper.py bewerten</code> übernehmen.</p>
+      <button id="nachtragen">Nachtragen</button>
+    </fieldset>` : '';
+  if(offen.length) document.getElementById('nachtragen').onclick = nachtragen;
+
+  urteil(n, kum, bewertet);
+}
+
+function urteil(n, kum, bewertet){
+  const u = document.getElementById('urteil');
+  if(!n){
+    u.innerHTML = '<div class="notiz">Aussagekraft entsteht erst nach etwa drei Jahren. Bis dahin gilt: nur eintragen, nicht deuten.</div>';
+    return;
+  }
+  const erwartet = Math.pow(1+BACKTEST_CAGR, n/12) - 1;
+  const mittel = bewertet.reduce((a,e) => a+e.rendite, 0) / n;
+  const se = MONATS_STD / Math.sqrt(n);
+  const abw = (mittel - BACKTEST_CAGR/12) / se;
+
+  let text = `<div class="notiz">Backtest-Erwartung für ${n} Monate: <b>${prozent(erwartet)}</b>.
+    Tatsächlich: <b>${prozent(kum)}</b>. Abweichung: <b>${abw>=0?'+':''}${abw.toFixed(1)} Standardfehler</b>.</div>`;
+
+  if(n < 36){
+    text += `<div class="notiz warn">Bei ${n} ${n===1?'Monat':'Monaten'} ist praktisch jedes Ergebnis
+      mit dem Backtest vereinbar — auch ein sehr gutes und ein sehr schlechtes.
+      Diese Zahl ist noch kein Urteil über die Strategie.</div>`;
+  } else if(Math.abs(abw) > 2){
+    text += `<div class="notiz warn">Die Abweichung überschreitet zwei Standardfehler.
+      Das ist der Punkt, an dem die Backtest-Annahmen überprüft gehören —
+      nicht der Punkt, an dem man die Strategie nachjustiert.</div>`;
+  }
+  if(speicherWarnung){
+    text += `<div class="notiz warn">Der Browserspeicher ist nicht verfügbar.
+      Die Einträge gehen beim Schließen verloren — jetzt exportieren.</div>`;
+  }
+  u.innerHTML = text;
+}
+
+document.getElementById('eintragen').onclick = () => {
+  const monat = document.getElementById('monat').value;
+  const roh = document.getElementById('positionen').value.trim();
+  if(!monat || !roh){ alert('Signalbasis und Positionen ausfüllen.'); return; }
+  if(journal.some(e => e.basis === monat)){
+    alert('Für diesen Monat existiert bereits ein Eintrag. Er wird nicht überschrieben.');
+    return;
+  }
+  const gewichte = {};
+  let summe = 0;
+  for(const zeile of roh.split('\n')){
+    const teile = zeile.trim().split(/[\s,;]+/).filter(Boolean);
+    if(teile.length < 2) continue;
+    const w = parseFloat(teile[1].replace(',','.'));
+    if(isNaN(w)) continue;
+    gewichte[teile[0].toUpperCase()] = w;
+    summe += w;
+  }
+  if(!Object.keys(gewichte).length){ alert('Keine gültigen Positionen erkannt.'); return; }
+  if(Math.abs(summe-1) > 0.02 &&
+     !confirm(`Die Gewichte summieren sich auf ${(summe*100).toFixed(0)} % statt 100 %. Trotzdem eintragen?`)) return;
+
+  journal.push({basis:monat, gewichte, rendite:null,
+                erstellt:new Date().toISOString().slice(0,10)});
+  sichern(journal);
+  document.getElementById('positionen').value = '';
+  zeichnen();
+};
+
+function nachtragen(){
+  const basis = document.getElementById('welcher').value;
+  const wert = parseFloat(document.getElementById('rendite').value);
+  if(isNaN(wert)){ alert('Rendite eingeben.'); return; }
+  const e = journal.find(x => x.basis === basis);
+  if(e.rendite !== null && e.rendite !== undefined){
+    alert('Dieser Eintrag ist bereits bewertet und wird nicht geändert.');
+    return;
+  }
+  e.rendite = wert/100;
+  e.bewertet = new Date().toISOString().slice(0,10);
+  sichern(journal);
+  zeichnen();
+}
+
+document.getElementById('export').onclick = () => {
+  const blob = new Blob([JSON.stringify(journal, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'paper_journal.json';
+  a.click();
+};
+
+document.getElementById('import').onclick = () => {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = ev => {
+    const datei = ev.target.files[0];
+    if(!datei) return;
+    const leser = new FileReader();
+    leser.onload = () => {
+      try{
+        const daten = JSON.parse(leser.result);
+        if(!Array.isArray(daten)) throw new Error('Kein Array');
+        journal = daten; sichern(journal); zeichnen();
+      }catch(err){ alert('Datei konnte nicht gelesen werden: ' + err.message); }
+    };
+    leser.readAsText(datei);
+  };
+  inp.click();
+};
+
+const jetzt = new Date();
+document.getElementById('monat').value =
+  `${jetzt.getFullYear()}-${String(jetzt.getMonth()).padStart(2,'0') || '12'}`;
+
+zeichnen();
+</script>
+</body>
+</html>

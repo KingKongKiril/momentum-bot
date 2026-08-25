@@ -1,0 +1,19 @@
+{
+  "name": "Momentum-Bot",
+  "short_name": "Momentum",
+  "description": "Multi-Asset-Momentum: Signal, Backtest, Hebelanalyse. Rechnet lokal, ohne Broker-Anbindung.",
+  "start_url": "./start.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F2F4F1",
+  "theme_color": "#141A16",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

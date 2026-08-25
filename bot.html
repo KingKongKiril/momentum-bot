@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Momentum-Bot</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#141A16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Momentum">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --papier:#F2F4F1;--raster:#D6DCD4;--tinte:#141A16;--grau:#5E6A61;
+  --signal:#1F4B7A;--verlust:#9C3B2C;--gewinn:#2E6B4F;--warn:#8A7A3E;
+  --linie:#C3CBC1;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--papier);
+  background-image:linear-gradient(var(--raster) .5px,transparent .5px),
+    linear-gradient(90deg,var(--raster) .5px,transparent .5px);
+  background-size:26px 26px;
+  color:var(--tinte);font-family:"Source Serif 4",Georgia,serif;
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+.blatt{max-width:760px;margin:0 auto;padding:0 18px 80px}
+
+header{padding:40px 0 24px;border-bottom:2px solid var(--tinte)}
+.kennung{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:500;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--grau);margin-bottom:16px}
+h1{font-family:"Archivo Narrow",sans-serif;font-weight:700;
+  font-size:clamp(34px,9vw,54px);line-height:.98;text-transform:uppercase;
+  letter-spacing:-.012em}
+h1 em{font-style:normal;color:var(--grau);display:block}
+.regel{margin-top:16px;font-size:15px;color:var(--grau);max-width:52ch}
+
+section{margin-top:40px}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--grau);
+  padding-bottom:7px;border-bottom:1px solid var(--linie);margin-bottom:20px;
+  display:flex;justify-content:space-between;gap:10px}
+h2{font-family:"Archivo Narrow",sans-serif;font-weight:600;font-size:24px;
+  margin-bottom:10px}
+p{max-width:60ch;margin-bottom:12px}
+
+fieldset{border:1.5px solid var(--tinte);padding:18px;background:rgba(255,255,255,.5)}
+legend{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;
+  letter-spacing:.13em;text-transform:uppercase;padding:0 8px}
+label{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--grau);
+  margin:16px 0 5px}
+label:first-of-type{margin-top:4px}
+input[type=file],input[type=text],input[type=number],select,textarea{
+  width:100%;font-family:"IBM Plex Mono",monospace;font-size:14px;
+  padding:9px 10px;border:1px solid var(--tinte);border-radius:2px;
+  background:#fff;color:var(--tinte)}
+textarea{min-height:90px;resize:vertical;line-height:1.45}
+input[type=range]{width:100%;accent-color:var(--signal)}
+input:focus,select:focus,textarea:focus,button:focus-visible{
+  outline:2px solid var(--signal);outline-offset:1px}
+.hinweis{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--grau);
+  margin-top:6px;line-height:1.5}
+button{font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;padding:11px 16px;
+  border:1.5px solid var(--tinte);border-radius:2px;background:var(--tinte);
+  color:var(--papier);cursor:pointer;margin-top:18px}
+button.sek{background:transparent;color:var(--tinte);margin-right:8px}
+button:hover{opacity:.86}
+
+.regler{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+.wert{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;
+  color:var(--signal)}
+
+.kacheln{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));
+  border:1.5px solid var(--tinte);background:rgba(255,255,255,.55)}
+.kacheln div{padding:14px 8px;text-align:center;border-right:1px solid var(--linie)}
+.kacheln div:last-child{border-right:none}
+.kacheln .zahl{font-family:"Archivo Narrow",sans-serif;font-weight:700;
+  font-size:27px;line-height:1;display:block}
+.kacheln .was{font-family:"IBM Plex Mono",monospace;font-size:9px;font-weight:500;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--grau);
+  margin-top:7px;display:block}
+
+table{width:100%;border-collapse:collapse;margin-top:14px;
+  font-family:"IBM Plex Mono",monospace;font-size:12.5px;
+  background:rgba(255,255,255,.5)}
+th{text-align:right;font-size:9.5px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--grau);padding:8px;
+  border-bottom:1.5px solid var(--tinte)}
+th:first-child,td:first-child{text-align:left}
+td{padding:8px;border-bottom:1px solid var(--linie);text-align:right}
+tbody tr:last-child td{border-bottom:1.5px solid var(--tinte)}
+.pos{color:var(--gewinn)}.neg{color:var(--verlust)}
+.gewaehlt td{background:rgba(31,75,122,.08);font-weight:600}
+.aus{color:var(--grau)}
+
+.chartbox{border:1.5px solid var(--tinte);background:rgba(255,255,255,.62);
+  padding:16px 12px 10px;margin-top:16px}
+svg{width:100%;height:auto;display:block;overflow:visible}
+.axis{font-family:"IBM Plex Mono",monospace;font-size:8.5px;fill:var(--grau)}
+
+.notiz{border-left:3px solid var(--signal);padding:2px 0 2px 16px;margin:18px 0;
+  font-size:15px}
+.notiz.warn{border-left-color:var(--verlust)}
+.notiz.gelb{border-left-color:var(--warn)}
+.versteckt{display:none}
+.leer{padding:24px 0;color:var(--grau);font-size:15px}
+
+footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--tinte);
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.05em;
+  line-height:1.9;color:var(--grau);text-transform:uppercase}
+
+@media(max-width:520px){
+  .regler{grid-template-columns:1fr}
+  .kacheln{grid-template-columns:1fr 1fr}
+  .kacheln div:nth-child(2n){border-right:none}
+  table{font-size:11.5px}td,th{padding:7px 5px}
+  .eyebrow{flex-direction:column;gap:3px}
+}
+</style>
+</head>
+<body>
+<div class="blatt">
+<p style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding-top:18px"><a href="start.html" style="color:#5E6A61;text-decoration:none">← Übersicht</a></p>
+
+<header>
+  <div class="kennung">Multi-Asset Momentum · Rechnet lokal im Browser</div>
+  <h1>Momentum-Bot<em>Ohne Kapitaleinsatz</em></h1>
+  <p class="regel">
+    Lädt eine Kursdatei, prüft sie, berechnet das aktuelle Signal und rechnet
+    den Backtest durch. Es werden keine Daten übertragen und keine Orders
+    ausgelöst.
+  </p>
+</header>
+
+<section>
+  <div class="eyebrow"><span>Schritt 1</span><span>Daten</span></div>
+  <fieldset>
+    <legend>Kursdatei laden</legend>
+    <label for="datei">CSV auswählen</label>
+    <input type="file" id="datei" accept=".csv,text/csv">
+    <p class="hinweis">
+      Erwartet wird <code>universum_daily.csv</code> aus
+      <code>python src/data.py</code>: erste Spalte Datum, danach je eine
+      Spalte pro Ticker mit Schlusskursen.
+    </p>
+    <label for="einfuegen">Oder Inhalt einfügen</label>
+    <textarea id="einfuegen" placeholder="Date,SPY,GLD,SHY&#10;2015-01-02,180.2,114.8,84.6&#10;..."></textarea>
+    <button id="laden">Daten einlesen</button>
+    <button class="sek" id="beispiel">Beispieldaten</button>
+    <button class="sek" id="verwerfen">Gespeicherte löschen</button>
+  </fieldset>
+  <div id="cachestatus"></div>
+  <div id="qualitaet"></div>
+</section>
+
+<div id="rest" class="versteckt">
+
+<section>
+  <div class="eyebrow"><span>Schritt 2</span><span>Einstellungen</span></div>
+  <fieldset>
+    <legend>Parameter</legend>
+    <div class="regler">
+      <div>
+        <label for="sicher">Geldmarkt-Ticker</label>
+        <select id="sicher"></select>
+      </div>
+      <div>
+        <label for="topn">Positionen: <span class="wert" id="topnWert">4</span></label>
+        <input type="range" id="topn" min="1" max="8" value="4">
+      </div>
+      <div>
+        <label for="perioden">Momentum-Zeiträume (Monate)</label>
+        <input type="text" id="perioden" value="3,6,12">
+      </div>
+      <div>
+        <label for="kosten">Kosten je Umschichtung: <span class="wert" id="kostenWert">0,20 %</span></label>
+        <input type="range" id="kosten" min="0" max="20" value="2">
+      </div>
+    </div>
+    <button id="rechnen">Neu berechnen</button>
+  </fieldset>
+  <div id="drehwarnung"></div>
+</section>
+
+<section>
+  <div class="eyebrow"><span>Aktuelles Signal</span><span id="signalBasis"></span></div>
+  <h2>Rangliste</h2>
+  <div id="signal"></div>
+</section>
+
+<section>
+  <div class="eyebrow"><span>Paper-Trading</span><span>Kein echtes Geld</span></div>
+  <h2>Journal</h2>
+  <p>
+    Am Monatsanfang das Signal eintragen, im Folgemonat das Ergebnis nachtragen.
+    Ein eingetragener Monat kann nicht mehr geändert werden — wer seine
+    Prognosen im Nachhinein korrigiert, misst nichts mehr.
+  </p>
+  <div class="kacheln" id="pKacheln"></div>
+  <div id="pAktion"></div>
+  <div id="pTabelle"></div>
+  <div id="pUrteil"></div>
+  <button class="sek" id="pExport">Journal exportieren</button>
+  <button class="sek" id="pImport">Importieren</button>
+</section>
+
+<section>
+  <div class="eyebrow"><span>Backtest</span><span id="btZeitraum"></span></div>
+  <div class="kacheln" id="kacheln"></div>
+  <div class="chartbox">
+    <svg id="kurve" viewBox="0 0 720 210" role="img" aria-label="Kapitalverlauf"></svg>
+  </div>
+  <div id="btNotiz"></div>
+</section>
+
+<section>
+  <div class="eyebrow"><span>Zufallsvergleich</span><span>Die Nullhypothese</span></div>
+  <h2>Besser als Würfeln?</h2>
+  <p>
+    Zufällig gewählte Anlagen bei gleicher Monatszahl. Schlägt eine Strategie
+    den Zufall nicht, trägt ihr Signal nichts bei.
+  </p>
+  <div id="zufall"></div>
+</section>
+
+<section>
+  <div class="eyebrow"><span>Walk-Forward</span><span>Der härteste Test</span></div>
+  <h2>Ohne Kenntnis der Zukunft</h2>
+  <p>
+    Parameter werden nur auf Vergangenheitsdaten gewählt und dann auf dem
+    nächsten, ungesehenen Jahr angewendet. Rechnet einige Sekunden.
+  </p>
+  <button id="wfStart">Walk-Forward rechnen</button>
+  <div id="walkforward"></div>
+</section>
+
+<section>
+  <div class="eyebrow"><span>Marktphasen</span><span>Wann es funktioniert</span></div>
+  <h2>Regime und Durststrecken</h2>
+  <div id="regime"></div>
+</section>
+
+<section>
+  <div class="eyebrow"><span>Hebel</span><span>Mit Finanzierung und Margin Call</span></div>
+  <h2>Was Hebel wirklich macht</h2>
+  <p>
+    Hebel erzeugt keinen Vorteil, er skaliert den vorhandenen — und fügt
+    Finanzierungskosten sowie das Risiko einer Zwangsliquidation hinzu.
+  </p>
+  <div id="hebel"></div>
+  <div id="kelly"></div>
+</section>
+
+</div>
+
+<footer>
+  Forschungsprojekt zu Bildungszwecken · Keine Anlageberatung<br>
+  Vergangene Ergebnisse sagen nichts über zukünftige aus<br>
+  Keine Broker-Anbindung · Keine Order-Ausführung
+</footer>
+</div>
+
+<script src="bot-core.js"></script>
+<script>
+let reihe = null, verlauf = null, rechnungen = 0;
+
+const $ = id => document.getElementById(id);
+const CACHE_KEY = 'momentum_daten_v1';
+
+// ---------- Daten im Browser behalten ----------
+// Damit man nach dem Schliessen nicht jedes Mal neu laden muss.
+// Etwa 5 MB Grenze - reicht fuer 20 Jahre Tageskurse.
+function datenSichern(text, quelle) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      text, quelle, gespeichert: new Date().toISOString()
+    }));
+    return true;
+  } catch (e) { return false; }
+}
+
+function datenLaden() {
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY)); }
+  catch (e) { return null; }
+}
+
+function cacheStatus(gespeichert, quelle, letzterKurs) {
+  if (!gespeichert) { $('cachestatus').innerHTML = ''; return; }
+  const tage = Math.floor((Date.now() - new Date(letzterKurs)) / 864e5);
+  const alt = tage > 45;
+  $('cachestatus').innerHTML = `
+    <div class="notiz${alt ? ' warn' : ''}">
+      Gespeicherte Daten geladen (${quelle}), letzter Kurs vom
+      <b>${letzterKurs.toISOString().slice(0, 10)}</b> — ${tage} Tage alt.
+      ${alt ? 'Für ein aktuelles Signal ist das zu alt. Neue CSV aus Colab laden.'
+            : 'Neu laden, sobald ein Monat abgeschlossen ist.'}
+    </div>`;
+}
+const pz = (v, n) => (v >= 0 ? '+' : '') + (v * 100).toFixed(n === undefined ? 2 : n).replace('.', ',') + ' %';
+const datum = d => d.toISOString().slice(0, 10);
+
+// ---------- Beispieldaten ----------
+function beispielCsv() {
+  const ticker = ['SPY', 'TLT', 'GLD', 'DBC', 'SHY'];
+  const drift = { SPY: 0.00035, TLT: 0.00008, GLD: 0.00018, DBC: 0.00005, SHY: 0.00006 };
+  const vola = { SPY: 0.010, TLT: 0.007, GLD: 0.009, DBC: 0.011, SHY: 0.0008 };
+  const kurs = { SPY: 100, TLT: 100, GLD: 100, DBC: 100, SHY: 100 };
+  let s = 12345;
+  const zufall = () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648 - .5; };
+  const zeilen = ['Date,' + ticker.join(',')];
+  let t = new Date('2010-01-01T00:00:00Z');
+  for (let n = 0; n < 3500;) {
+    const wt = t.getUTCDay();
+    if (wt !== 0 && wt !== 6) {
+      const gemeinsam = zufall();
+      ticker.forEach(k => {
+        const stoss = 0.6 * gemeinsam + 0.8 * zufall();
+        kurs[k] *= (1 + drift[k] + vola[k] * stoss * 3.4);
+      });
+      zeilen.push(datum(t) + ',' + ticker.map(k => kurs[k].toFixed(4)).join(','));
+      n++;
+    }
+    t.setUTCDate(t.getUTCDate() + 1);
+  }
+  return zeilen.join('\n');
+}
+
+// ---------- Laden ----------
+function einlesen(text, opt) {
+  opt = opt || {};
+  try {
+    reihe = Bot.parseCsv(text);
+  } catch (e) {
+    $('qualitaet').innerHTML = `<div class="notiz warn">Datei konnte nicht gelesen werden: ${e.message}</div>`;
+    return;
+  }
+
+  const q = Bot.pruefeQualitaet(reihe);
+
+  if (opt.sichern !== false) {
+    const ok = datenSichern(text, opt.quelle || 'CSV');
+    if (!ok) $('cachestatus').innerHTML =
+      `<div class="notiz warn">Daten konnten nicht gespeichert werden
+       (Browserspeicher voll oder gesperrt). Nach dem Schließen sind sie weg.</div>`;
+    else if (opt.quelle !== 'Beispiel') cacheStatus(true, opt.quelle || 'CSV', q.bis);
+  } else {
+    cacheStatus(true, opt.quelle, q.bis);
+  }
+  let html = `<table><thead><tr><th>Prüfung</th><th>Ergebnis</th></tr></thead><tbody>
+    <tr><td>Zeilen</td><td>${q.zeilen}</td></tr>
+    <tr><td>Zeitraum</td><td>${datum(q.von)} – ${datum(q.bis)}</td></tr>
+    <tr><td>Doppelte Zeitstempel</td><td class="${q.doppelte ? 'neg' : ''}">${q.doppelte}</td></tr>
+    <tr><td>Fehlende Handelstage</td><td>${q.fehlendeWerktage} (${q.fehlendProJahr.toFixed(1)}/Jahr)</td></tr>
+    </tbody></table>`;
+
+  html += q.verdaechtig
+    ? `<div class="notiz warn">Mehr als 15 fehlende Handelstage pro Jahr.
+       Erwartet wären rund 9 (Börsenfeiertage). Die Datenquelle gehört geprüft,
+       bevor die Ergebnisse etwas bedeuten.</div>`
+    : `<div class="notiz">Rund 9 fehlende Handelstage pro Jahr sind Börsenfeiertage.
+       Wochenenden zählen nicht als Lücke.</div>`;
+
+  $('qualitaet').innerHTML = html;
+
+  const auswahl = $('sicher');
+  auswahl.innerHTML = reihe.ticker.map(t =>
+    `<option value="${t}"${/^(SHY|BIL|SGOV)$/.test(t) ? ' selected' : ''}>${t}</option>`).join('');
+
+  $('rest').classList.remove('versteckt');
+  rechnen();
+}
+
+// ---------- Rechnen ----------
+function optionen() {
+  const perioden = $('perioden').value.split(/[,;\s]+/)
+    .map(x => parseInt(x, 10)).filter(x => x > 0);
+  return {
+    sicher: $('sicher').value,
+    topN: parseInt($('topn').value, 10),
+    perioden: perioden.length ? perioden : [3, 6, 12],
+    kosten: parseInt($('kosten').value, 10) / 1000
+  };
+}
+
+function rechnen() {
+  const o = optionen();
+  let sig;
+  try {
+    sig = Bot.aktuellesSignal(reihe, o);
+    verlauf = Bot.backtest(reihe, o);
+  } catch (e) {
+    $('signal').innerHTML = `<div class="notiz warn">${e.message}</div>`;
+    return;
+  }
+
+  zeichneSignal(sig, o);
+  zeichneJournal(sig, o);
+  zeichneBacktest(o);
+  zeichneZufall(o);
+  zeichneRegime(o);
+  zeichneHebel();
+  // Walk-Forward laeuft nur auf Knopfdruck - er rechnet
+  // hunderte Backtests und wuerde die Oberflaeche blockieren.
+  $('walkforward').innerHTML =
+    '<div class="notiz">Noch nicht gerechnet.</div>';
+
+  rechnungen++;
+  $('drehwarnung').innerHTML = rechnungen > 6 ? `
+    <div class="notiz gelb">${rechnungen} Durchläufe mit verschiedenen Einstellungen.
+    Ab hier wird nicht mehr geprüft, sondern gesucht: Wer lange genug dreht,
+    findet immer eine Kombination, die im Backtest gut aussieht — und lernt
+    dabei die Zufälligkeiten dieses Zeitraums auswendig. Ein belastbarer Effekt
+    zeigt sich darin, dass die Einstellung kaum zählt.</div>` : '';
+}
+
+// ---------- Signal ----------
+function zeichneSignal(sig, o) {
+  $('signalBasis').textContent = 'Basis ' + datum(sig.basis);
+
+  const sortiert = reihe.ticker
+    .filter(t => t !== o.sicher && isFinite(sig.momentum[t]))
+    .sort((a, b) => sig.momentum[b] - sig.momentum[a]);
+
+  const zeilen = sortiert.map(t => {
+    const drin = sig.gewaehlt.includes(t);
+    const g = sig.gewichte[t] || 0;
+    const ueber = sig.momentum[t] > sig.momentum[o.sicher];
+    return `<tr class="${drin ? 'gewaehlt' : ''}">
+      <td>${t}</td>
+      <td class="${sig.momentum[t] >= 0 ? 'pos' : 'neg'}">${pz(sig.momentum[t], 1)}</td>
+      <td>${isFinite(sig.vola[t]) ? (sig.vola[t] * 100).toFixed(1) + ' %' : '–'}</td>
+      <td>${drin ? (g * 100).toFixed(0) + ' %' : (ueber ? '<span class="aus">nicht in Top ' + o.topN + '</span>' : '<span class="aus">unter Geldmarkt</span>')}</td>
+    </tr>`;
+  }).join('');
+
+  const cash = sig.gewichte[o.sicher] || 0;
+  $('signal').innerHTML = `
+    <table><thead><tr><th>Anlage</th><th>Momentum</th><th>Vola</th><th>Gewicht</th></tr></thead>
+    <tbody>${zeilen}
+    <tr class="gewaehlt"><td>${o.sicher}</td><td class="aus">Geldmarkt</td><td>–</td><td>${(cash * 100).toFixed(0)} %</td></tr>
+    </tbody></table>
+    <div class="notiz">Signal auf Basis des letzten <b>abgeschlossenen</b> Monats.
+    Der laufende Monat wird verworfen — sonst beruht die Rangliste auf wenigen
+    Handelstagen, die als volle Monatsrendite gelesen würden.</div>`;
+}
+
+// ---------- Backtest ----------
+function zeichneBacktest(o) {
+  const k = Bot.kennzahlen(verlauf);
+  $('btZeitraum').textContent = `${datum(verlauf[0].datum)} – ${datum(verlauf[verlauf.length - 1].datum)}`;
+
+  $('kacheln').innerHTML = `
+    <div><span class="zahl">${pz(k.cagr, 1).replace(' %', '')}</span><span class="was">Rendite p.a. %</span></div>
+    <div><span class="zahl">${(k.maxDrawdown * 100).toFixed(0)}</span><span class="was">Max Drawdown %</span></div>
+    <div><span class="zahl">${k.sharpe.toFixed(2)}</span><span class="was">Sharpe</span></div>
+    <div><span class="zahl">${Math.round(k.positiveMonate * 100)}</span><span class="was">Positive Monate %</span></div>`;
+
+  kurve(verlauf);
+
+  $('btNotiz').innerHTML = `
+    <div class="notiz">Sharpe ${k.sharpe.toFixed(2)} ± ${k.sharpeFehler.toFixed(2)}
+    bei ${k.monate} Monaten. Plausibler Bereich:
+    <b>${(k.sharpe - 2 * k.sharpeFehler).toFixed(2)} bis ${(k.sharpe + 2 * k.sharpeFehler).toFixed(2)}</b>.
+    Ein Backtest-Sharpe ist eine Schätzung, kein Messwert.</div>
+    <div class="notiz">Schlechtester Monat: <b>${pz(k.schlechtesterMonat, 1)}</b>.
+    Der Drawdown ist monatlich gemessen — Verluste innerhalb eines Monats
+    tauchen hier nicht auf, der reale Wert liegt darunter.</div>
+    ${k.monate < 120 ? '<div class="notiz gelb">Weniger als 10 Jahre Daten. Für eine belastbare Aussage zu wenig.</div>' : ''}`;
+}
+
+function kurve(v) {
+  const svg = $('kurve'), NS = 'http://www.w3.org/2000/svg';
+  svg.innerHTML = '';
+  const W = 720, H = 210, links = 42, unten = 24, oben = 10;
+  const hoehe = H - unten - oben;
+  const werte = v.map(x => x.equity);
+  const max = Math.max(...werte), min = Math.min(...werte, 1);
+  const logMax = Math.log(max), logMin = Math.log(min);
+  const spanne = Math.max(logMax - logMin, 1e-9);
+  const y = w => oben + hoehe * (logMax - Math.log(w)) / spanne;
+  const x = i => links + (W - links) * i / (v.length - 1);
+
+  const el = (t, a) => { const e = document.createElementNS(NS, t);
+    for (const k in a) e.setAttribute(k, a[k]); svg.appendChild(e); return e; };
+
+  [min, Math.sqrt(min * max), max].forEach(w => {
+    el('line', { x1: links, x2: W, y1: y(w), y2: y(w), stroke: '#C3CBC1', 'stroke-width': .7 });
+    const txt = el('text', { x: links - 6, y: y(w) + 3, class: 'axis', 'text-anchor': 'end' });
+    txt.textContent = w.toFixed(2) + 'x';
+  });
+
+  // Drawdown-Flaeche
+  let spitze = -Infinity;
+  const dd = v.map(p => { spitze = Math.max(spitze, p.equity); return p.equity / spitze - 1; });
+  const minDd = Math.min(...dd, -1e-9);
+  const ddPfad = dd.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${(H - unten + d / minDd * -18).toFixed(1)}`).join('');
+  el('path', { d: ddPfad + `L${W},${H - unten}L${links},${H - unten}Z`,
+    fill: 'rgba(156,59,44,.16)', stroke: 'none' });
+
+  el('path', { d: v.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.equity).toFixed(1)}`).join(''),
+    fill: 'none', stroke: '#1F4B7A', 'stroke-width': 1.8 });
+
+  const a = el('text', { x: links, y: H - 6, class: 'axis' });
+  a.textContent = datum(v[0].datum).slice(0, 7);
+  const b = el('text', { x: W, y: H - 6, class: 'axis', 'text-anchor': 'end' });
+  b.textContent = datum(v[v.length - 1].datum).slice(0, 7) + '  ·  rot = Drawdown';
+}
+
+// ---------- Zufallsvergleich ----------
+function zeichneZufall(o) {
+  let z;
+  try { z = Bot.zufallsvergleich(reihe, verlauf, o); }
+  catch (e) { $('zufall').innerHTML = ''; return; }
+  if (!z) { $('zufall').innerHTML = ''; return; }
+
+  const schlaegt = z.anteilSchlechter;
+  $('zufall').innerHTML = `
+    <table><thead><tr><th></th><th>Ø Monatsrendite</th></tr></thead><tbody>
+      <tr><td>Zufall (Mittel)</td><td>${pz(z.zufallMittel)}</td></tr>
+      <tr><td>Zufall (5.–95. Perzentil)</td><td>${pz(z.p05)} bis ${pz(z.p95)}</td></tr>
+      <tr class="gewaehlt"><td>Strategie</td><td>${pz(z.strategie)}</td></tr>
+    </tbody></table>
+    <div class="notiz${schlaegt < 0.5 ? ' warn' : ''}">
+      Die Strategie war besser als <b>${Math.round(schlaegt * 100)} %</b> der Zufallsläufe.
+      ${schlaegt < 0.5
+        ? 'Unter 50 % heißt: Der Zufall war im Schnitt besser. Das Signal trägt nichts bei.'
+        : (z.strategie > z.p05 && z.strategie < z.p95
+          ? 'Der Wert liegt innerhalb der Zufallsbandbreite — das Ergebnis ist mit reinem Zufall vereinbar.'
+          : 'Der Wert liegt außerhalb der Zufallsbandbreite.')}
+    </div>`;
+}
+
+// ---------- Regime und Durststrecken ----------
+function zeichneRegime(o) {
+  const referenz = reihe.ticker.includes('SPY') ? 'SPY' : reihe.ticker[0];
+  const anleihe = reihe.ticker.includes('IEF') ? 'IEF' : o.sicher;
+  const reg = Bot.regime(reihe, verlauf, referenz, anleihe);
+  const dur = Bot.durststrecken(verlauf, 5);
+
+  let html = '';
+  if (reg && reg.length) {
+    html += `<table><thead><tr><th>Phase</th><th>Monate</th>
+      <th>Strategie p.a.</th><th>${referenz} p.a.</th><th>Vorsprung</th></tr></thead><tbody>` +
+      reg.map(r => `<tr>
+        <td>${r.regime}</td>
+        <td>${r.monate} (${Math.round(r.anteil * 100)} %)</td>
+        <td class="${r.strategiePa >= 0 ? 'pos' : 'neg'}">${pz(r.strategiePa, 1)}</td>
+        <td class="${r.referenzPa >= 0 ? 'pos' : 'neg'}">${pz(r.referenzPa, 1)}</td>
+        <td class="${r.vorsprung >= 0 ? 'pos' : 'neg'}">${pz(r.vorsprung, 1)}</td>
+      </tr>`).join('') + '</tbody></table>';
+
+    const bulle = reg.find(r => r.regime === 'Bulle');
+    if (bulle && bulle.vorsprung < -0.05) {
+      html += `<div class="notiz">In steigenden Märkten bleibt die Strategie um
+        <b>${pz(bulle.vorsprung, 1)}</b> pro Jahr zurück. Das ist kein Fehler,
+        sondern ihr Wesen: Sie ist eine Versicherung, keine Renditemaschine.
+        Der Preis dafür wird in Bullenjahren fällig.</div>`;
+    }
+    html += `<div class="notiz">Regime werden aus den Daten im Nachhinein bestimmt.
+      Zum Zeitpunkt der Entscheidung weiß man nicht, in welchem man steckt —
+      wer daraus eine Handelsregel ableitet, baut Zukunftswissen ein.</div>`;
+  }
+
+  if (dur.length) {
+    html += `<h2 style="margin-top:28px">Längste Durststrecken</h2>
+      <table><thead><tr><th>Von</th><th>Bis</th><th>Monate</th><th>Tiefster Stand</th></tr></thead><tbody>` +
+      dur.map(d => `<tr>
+        <td>${datum(d.von).slice(0, 7)}</td>
+        <td>${datum(d.bis).slice(0, 7)}${d.laufend ? ' *' : ''}</td>
+        <td>${d.monate}</td>
+        <td class="neg">${pz(d.tiefster, 1)}</td>
+      </tr>`).join('') + '</tbody></table>';
+
+    const laengste = dur[0].monate;
+    html += `<div class="notiz${laengste > 24 ? ' warn' : ''}">
+      Längste Phase unter dem alten Höchststand: <b>${laengste} Monate</b>.
+      ${laengste > 24
+        ? 'Über zwei Jahre. Ein Drawdown von wenigen Prozent klingt erträglich — so lange zu warten ist etwas anderes, und der Grund, warum die meisten im ungeeignetsten Moment aufgeben.'
+        : 'Das ist auszuhalten.'}
+      ${dur.some(d => d.laufend) ? ' Mit * markierte Phasen laufen noch.' : ''}</div>`;
+  }
+
+  $('regime').innerHTML = html;
+}
+
+// ---------- Walk-Forward ----------
+function zeichneWalkForward() {
+  const o = optionen();
+  $('walkforward').innerHTML = '<div class="notiz">Rechnet…</div>';
+
+  setTimeout(() => {
+    let wf;
+    try {
+      wf = Bot.walkForward(reihe, { sicher: o.sicher, kosten: o.kosten });
+    } catch (e) {
+      $('walkforward').innerHTML = `<div class="notiz warn">${e.message}
+        — für Walk-Forward werden mindestens etwa 10 Jahre Daten gebraucht.</div>`;
+      return;
+    }
+
+    const fest = Bot.kennzahlen(verlauf);
+    const k = wf.kennzahlen;
+    const s = wf.stabilitaet;
+
+    let html = `<table><thead><tr><th></th><th>Rendite p.a.</th><th>Max DD</th><th>Sharpe</th><th>Jahre</th></tr></thead><tbody>
+      <tr><td>Fester Backtest</td><td>${pz(fest.cagr, 1)}</td><td class="neg">${pz(fest.maxDrawdown, 0)}</td><td>${fest.sharpe.toFixed(2)}</td><td>${fest.jahre.toFixed(1)}</td></tr>
+      <tr class="gewaehlt"><td>Walk-Forward</td><td>${pz(k.cagr, 1)}</td><td class="neg">${pz(k.maxDrawdown, 0)}</td><td>${k.sharpe.toFixed(2)}</td><td>${k.jahre.toFixed(1)}</td></tr>
+      </tbody></table>`;
+
+    const l = wf.luecke;
+    const bewertung = l < 0.3
+      ? 'Unauffällig. Die Parameterwahl war nicht der entscheidende Faktor.'
+      : (l < 0.5
+        ? 'Grenzwertig. Ein Teil des festen Backtest-Ergebnisses hing an der Parameterwahl.'
+        : 'Deutlich. Die Optimierung hat überwiegend Rauschen erfasst — der feste Backtest ist zu optimistisch, nicht der Walk-Forward zu pessimistisch.');
+
+    html += `<div class="notiz${l >= 0.5 ? ' warn' : (l >= 0.3 ? ' gelb' : '')}">
+      Optimismus-Lücke: <b>${l >= 0 ? '+' : ''}${l.toFixed(2)}</b>
+      (Training ${wf.sharpeTraining.toFixed(2)} gegen Handel ${k.sharpe.toFixed(2)}).
+      ${bewertung}</div>`;
+
+    html += `<div class="notiz">Parameterstabilität: ${s.durchlaeufe} Durchläufe,
+      ${s.verschiedene} verschiedene Kombinationen, ${s.wechsel} Wechsel.
+      Häufigste: <b>${s.haeufigste}</b> in ${Math.round(s.anteilHaeufigste * 100)} % der Fenster.
+      ${s.wechsel > s.durchlaeufe * 0.6
+        ? 'Die Wahl springt fast jedes Mal — dann optimiert man Rauschen.'
+        : 'Eine stabile Wahl ist ein gutes Zeichen.'}</div>`;
+
+    html += `<table style="margin-top:20px"><thead><tr>
+      <th>Training bis</th><th>Gewählt</th><th>Sharpe Training</th><th>Rendite Handel</th>
+      </tr></thead><tbody>` +
+      wf.protokoll.map(p => `<tr>
+        <td>${datum(p.trainingBis).slice(0, 7)}</td>
+        <td>Top ${p.topN} · ${p.perioden}</td>
+        <td>${p.sharpeTraining.toFixed(2)}</td>
+        <td class="${p.rendite >= 0 ? 'pos' : 'neg'}">${pz(p.rendite, 1)}</td>
+      </tr>`).join('') + '</tbody></table>';
+
+    $('walkforward').innerHTML = html;
+  }, 30);
+}
+
+// ---------- Paper-Trading-Journal ----------
+const P_KEY = 'paper_journal_v2';
+const BACKTEST_ERWARTUNG = 0.0833;   // CAGR aus dem 19-Jahres-Backtest
+const MONATS_STD = 0.028;
+
+function pLaden() {
+  try { return JSON.parse(localStorage.getItem(P_KEY)) || []; }
+  catch (e) { return window.__pj || []; }
+}
+function pSichern(d) {
+  window.__pj = d;
+  try { localStorage.setItem(P_KEY, JSON.stringify(d)); return true; }
+  catch (e) { return false; }
+}
+
+let journal = pLaden();
+
+function zeichneJournal(sig, o) {
+  const bewertet = journal.filter(e => e.rendite !== null && e.rendite !== undefined);
+  const n = bewertet.length;
+  const kum = bewertet.reduce((a, e) => a * (1 + e.rendite), 1) - 1;
+  const treffer = n ? bewertet.filter(e => e.rendite > 0).length / n : 0;
+
+  $('pKacheln').innerHTML = `
+    <div><span class="zahl">${journal.length}</span><span class="was">Einträge</span></div>
+    <div><span class="zahl">${n}</span><span class="was">Bewertet</span></div>
+    <div><span class="zahl">${n ? pz(kum, 1).replace(' %', '') : '—'}</span><span class="was">Kumuliert %</span></div>
+    <div><span class="zahl">${n ? Math.round(treffer * 100) : '—'}</span><span class="was">Positive %</span></div>`;
+
+  // Eintragen oder nachtragen
+  const basis = sig ? datum(sig.basis).slice(0, 7) : null;
+  const schonDa = basis && journal.some(e => e.basis === basis);
+  const offen = journal.filter(e => e.rendite === null || e.rendite === undefined);
+
+  let html = '';
+  if (sig && !schonDa) {
+    const pos = Object.entries(sig.gewichte)
+      .filter(([, w]) => w > 0.001)
+      .map(([t, w]) => `${t} ${Math.round(w * 100)} %`).join(' · ');
+    html += `<fieldset style="margin-top:18px"><legend>Signal eintragen</legend>
+      <p style="margin:0 0 6px"><b>${basis}</b> — ${pos}</p>
+      <button id="pEintragen">Diesen Monat eintragen</button></fieldset>`;
+  } else if (schonDa) {
+    html += `<div class="notiz">Für ${basis} ist bereits ein Eintrag vorhanden.
+      Er wird nicht überschrieben.</div>`;
+  }
+
+  if (offen.length) {
+    html += `<fieldset style="margin-top:16px"><legend>Ergebnis nachtragen</legend>
+      <label for="pWelcher">Eintrag</label>
+      <select id="pWelcher">${offen.map(e =>
+        `<option value="${e.basis}">${e.basis}</option>`).join('')}</select>
+      <label for="pRendite">Monatsrendite in Prozent</label>
+      <input type="number" id="pRendite" step="0.01" placeholder="z. B. 1.85 oder -0.60">
+      <button id="pNachtragen">Nachtragen</button></fieldset>`;
+  }
+  $('pAktion').innerHTML = html;
+
+  if ($('pEintragen')) $('pEintragen').onclick = () => pEintragen(sig, o);
+  if ($('pNachtragen')) $('pNachtragen').onclick = pNachtragen;
+
+  // Tabelle
+  if (!journal.length) {
+    $('pTabelle').innerHTML = '<p class="leer">Noch keine Einträge. Der erste Monat ist der wichtigste — ab dann läuft die Uhr.</p>';
+  } else {
+    const zeilen = journal.slice().sort((a, b) => b.basis.localeCompare(a.basis))
+      .map(e => {
+        const pos = Object.entries(e.gewichte).filter(([, w]) => w > 0.001)
+          .map(([t, w]) => `${t} ${Math.round(w * 100)}%`).join(' · ');
+        const r = (e.rendite === null || e.rendite === undefined)
+          ? '<span class="aus">offen</span>'
+          : `<span class="${e.rendite >= 0 ? 'pos' : 'neg'}">${pz(e.rendite)}</span>`;
+        return `<tr><td>${e.basis}</td><td style="text-align:left">${pos}</td><td>${r}</td></tr>`;
+      }).join('');
+    $('pTabelle').innerHTML = `<table><thead><tr><th>Basis</th>
+      <th style="text-align:left">Positionen</th><th>Rendite</th></tr></thead>
+      <tbody>${zeilen}</tbody></table>`;
+  }
+
+  // Einordnung
+  if (!n) {
+    $('pUrteil').innerHTML = '<div class="notiz">Aussagekraft entsteht erst nach etwa drei Jahren. Bis dahin gilt: nur eintragen, nicht deuten.</div>';
+  } else {
+    const erwartet = Math.pow(1 + BACKTEST_ERWARTUNG, n / 12) - 1;
+    const mittel = bewertet.reduce((a, e) => a + e.rendite, 0) / n;
+    const se = MONATS_STD / Math.sqrt(n);
+    const abw = (mittel - BACKTEST_ERWARTUNG / 12) / se;
+    let u = `<div class="notiz">Backtest-Erwartung für ${n} ${n === 1 ? 'Monat' : 'Monate'}:
+      <b>${pz(erwartet)}</b>. Tatsächlich: <b>${pz(kum)}</b>.
+      Abweichung: <b>${abw >= 0 ? '+' : ''}${abw.toFixed(1)} Standardfehler</b>.</div>`;
+    if (n < 36) {
+      u += `<div class="notiz gelb">Bei ${n} ${n === 1 ? 'Monat' : 'Monaten'} ist praktisch
+        jedes Ergebnis mit dem Backtest vereinbar — auch ein sehr gutes und ein sehr
+        schlechtes. Diese Zahl ist noch kein Urteil über die Strategie.</div>`;
+    } else if (Math.abs(abw) > 2) {
+      u += `<div class="notiz warn">Die Abweichung überschreitet zwei Standardfehler.
+        Das ist der Punkt, an dem die Backtest-Annahmen überprüft gehören — nicht der
+        Punkt, an dem man die Strategie nachjustiert.</div>`;
+    }
+    $('pUrteil').innerHTML = u;
+  }
+}
+
+function pEintragen(sig, o) {
+  const basis = datum(sig.basis).slice(0, 7);
+  if (journal.some(e => e.basis === basis)) return;
+  const g = {};
+  for (const [t, w] of Object.entries(sig.gewichte)) if (w > 0.001) g[t] = w;
+  journal.push({ basis, gewichte: g, rendite: null,
+                 erstellt: new Date().toISOString().slice(0, 10) });
+  if (!pSichern(journal)) alert('Speichern fehlgeschlagen — bitte exportieren.');
+  zeichneJournal(sig, o);
+}
+
+function pNachtragen() {
+  const basis = $('pWelcher').value;
+  const wert = parseFloat($('pRendite').value);
+  if (isNaN(wert)) { alert('Rendite eingeben.'); return; }
+  const e = journal.find(x => x.basis === basis);
+  if (e.rendite !== null && e.rendite !== undefined) {
+    alert('Dieser Eintrag ist bereits bewertet und wird nicht geändert.');
+    return;
+  }
+  e.rendite = wert / 100;
+  e.bewertet = new Date().toISOString().slice(0, 10);
+  pSichern(journal);
+  rechnen();
+}
+
+$('pExport').onclick = () => {
+  const blob = new Blob([JSON.stringify(journal, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'paper_journal.json';
+  a.click();
+};
+
+$('pImport').onclick = () => {
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = ev => {
+    const f = ev.target.files[0];
+    if (!f) return;
+    const leser = new FileReader();
+    leser.onload = () => {
+      try {
+        const d = JSON.parse(leser.result);
+        if (!Array.isArray(d)) throw new Error('Kein Array');
+        journal = d; pSichern(journal); rechnen();
+      } catch (err) { alert('Datei nicht lesbar: ' + err.message); }
+    };
+    leser.readAsText(f);
+  };
+  inp.click();
+};
+
+// ---------- Hebel ----------
+function zeichneHebel() {
+  const stufen = [1, 1.25, 1.5, 2, 2.5, 3];
+  const zeilen = stufen.map(f => {
+    const h = Bot.hebel(verlauf, f, 0.06, 0.30);
+    return `<tr class="${f === 1 ? 'gewaehlt' : ''}">
+      <td>${f.toFixed(2)}x</td>
+      <td class="${h.cagr >= 0 ? 'pos' : 'neg'}">${pz(h.cagr, 1)}</td>
+      <td class="neg">${pz(h.maxDrawdown, 0)}</td>
+      <td>${(h.finanzierung * 100).toFixed(1)} %</td>
+      <td class="${h.liquidationen ? 'neg' : ''}">${h.liquidationen}</td>
+    </tr>`;
+  }).join('');
+
+  $('hebel').innerHTML = `<table><thead><tr>
+    <th>Hebel</th><th>Rendite p.a.</th><th>Max DD</th><th>Finanzierung</th><th>Liquidationen</th>
+    </tr></thead><tbody>${zeilen}</tbody></table>`;
+
+  const kel = Bot.kelly(verlauf);
+  const beste = [1, 1.25, 1.5, 2, 2.5, 3]
+    .map(f => Bot.hebel(verlauf, f, 0.06, 0.30))
+    .reduce((a, b) => b.cagr > a.cagr ? b : a);
+
+  $('kelly').innerHTML = `
+    <div class="notiz">Kelly-Hebel: <b>${kel.kelly.toFixed(2)}x</b>,
+    halbes Kelly: <b>${kel.halbKelly.toFixed(2)}x</b>.
+    Kelly setzt voraus, dass man die wahren Parameter kennt — man kennt aber nur
+    Schätzungen aus einem Backtest. In der Praxis ist selbst halbes Kelly noch
+    aggressiv.</div>
+    ${beste.faktor > 1 ? `<div class="notiz gelb">Höchste Rendite bei
+      ${beste.faktor.toFixed(2)}x — allerdings mit ${pz(beste.maxDrawdown, 0)} Drawdown.
+      Diese Zahl beruht auf einem einzigen historischen Pfad.</div>`
+      : `<div class="notiz">Kein Hebel über 1x verbessert hier die Rendite.
+      Finanzierungskosten und Volatilitätsdrag fressen den Zugewinn — ein Verlust
+      von 20 % braucht 25 % Gewinn zum Ausgleich, und gehebelt wird diese
+      Asymmetrie größer.</div>`}
+    <div class="notiz warn">Steht in der Spalte Liquidationen eine Zahl über null,
+    wurde die Position zwangsweise glattgestellt. Danach läuft das Restkapital
+    ungehebelt weiter und macht die Erholung nicht mit. So wird aus einem
+    vorübergehenden Verlust ein endgültiger.</div>`;
+}
+
+// ---------- Ereignisse ----------
+$('datei').addEventListener('change', ev => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const leser = new FileReader();
+  leser.onload = () => einlesen(leser.result, { quelle: f.name });
+  leser.readAsText(f);
+});
+$('laden').onclick = () => {
+  const t = $('einfuegen').value.trim();
+  if (!t) { alert('Datei auswählen oder Inhalt einfügen.'); return; }
+  einlesen(t, { quelle: 'Eingefügt' });
+};
+$('verwerfen').onclick = () => {
+  if (!confirm('Gespeicherte Kursdaten löschen?')) return;
+  try { localStorage.removeItem(CACHE_KEY); } catch (e) {}
+  location.reload();
+};
+$('beispiel').onclick = () => {
+  $('einfuegen').value = '';
+  einlesen(beispielCsv(), { sichern: false, quelle: 'Beispiel' });
+  $('cachestatus').innerHTML = '';
+  $('qualitaet').insertAdjacentHTML('beforeend',
+    `<div class="notiz gelb">Beispieldaten sind <b>zufällig erzeugt</b>, keine echten
+     Kurse. Sie dienen nur dazu, die Oberfläche auszuprobieren — jede Kennzahl
+     daraus ist bedeutungslos.</div>`);
+};
+$('rechnen').onclick = rechnen;
+$('wfStart').onclick = zeichneWalkForward;
+$('topn').addEventListener('input', e => $('topnWert').textContent = e.target.value);
+$('kosten').addEventListener('input', e =>
+  $('kostenWert').textContent = (e.target.value / 10).toFixed(2).replace('.', ',') + ' %');
+
+// ---------- Start: gespeicherte Daten wiederherstellen ----------
+(function () {
+  const gespeichert = datenLaden();
+  if (gespeichert && gespeichert.text) {
+    einlesen(gespeichert.text, { sichern: false, quelle: gespeichert.quelle });
+  }
+})();
+
+// ---------- Offline-Betrieb ----------
+// Nur ueber http(s), nicht bei direkt geoeffneter Datei.
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
