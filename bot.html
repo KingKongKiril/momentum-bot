@@ -498,9 +498,14 @@ function zeichneBacktest(o) {
     <div><span class="zahl">${pz(k.cagr, 1).replace(' %', '')}</span><span class="was">Rendite p.a. %</span></div>
     <div><span class="zahl">${(k.maxDrawdown * 100).toFixed(0)}</span><span class="was">Max Drawdown %</span></div>
     <div><span class="zahl">${k.sharpe.toFixed(2)}</span><span class="was">Sharpe</span></div>
-    <div><span class="zahl">${Math.round(k.positivAnteil * 100)}</span><span class="was">Positive ${tag ? 'Tage' : 'Monate'} %</span></div>`;
+    <div><span class="zahl">${Math.round(k.positivAnteil * 100)}</span><span class="was">Positive ${tag ? 'Tage' : 'Monate'} %</span></div>
+    <div><span class="zahl">${Math.round(k.turnoverMittel * 100)}</span><span class="was">Ø Umschichtung %</span></div>`;
 
   kurve(verlauf);
+
+  // Kostenlast pro Jahr naeherungsweise aus Turnover x Kostensatz -
+  // ignoriert Zinseszins, macht aber die Groessenordnung sichtbar.
+  const kostenlastPa = k.turnoverProJahr * o.kosten;
 
   $('btNotiz').innerHTML = `
     <div class="notiz">Sharpe ${k.sharpe.toFixed(2)} ± ${k.sharpeFehler.toFixed(2)}
@@ -511,6 +516,12 @@ function zeichneBacktest(o) {
     ${tag
       ? 'Der Drawdown ist auf Schlusskursbasis gemessen — Verluste innerhalb eines Handelstages (Intraday) tauchen hier nicht auf, der reale Wert liegt darunter.'
       : 'Der Drawdown ist monatlich gemessen — Verluste innerhalb eines Monats tauchen hier nicht auf, der reale Wert liegt darunter.'}</div>
+    <div class="notiz${tag && k.turnoverProJahr > 15 ? ' warn' : ''}">Das Portfolio wird im Schnitt zu
+    <b>${Math.round(k.turnoverMittel * 100)} %</b> je ${tag ? 'Handelstag' : 'Monat'} umgeschichtet —
+    hochgerechnet <b>${k.turnoverProJahr.toFixed(1)}×</b> pro Jahr. Bei
+    ${(o.kosten * 100).toFixed(2).replace('.', ',')} % Kosten je Umschichtung macht allein das
+    näherungsweise <b>${pz(-kostenlastPa, 1)}</b> Kostenlast pro Jahr aus (im Backtest bereits
+    eingerechnet, nicht zusätzlich abzuziehen).</div>
     ${k.n < ppj * 10 ? '<div class="notiz gelb">Weniger als 10 Jahre Daten. Für eine belastbare Aussage zu wenig.</div>' : ''}`;
 }
 
@@ -637,7 +648,9 @@ function zeichneRegime(o) {
 // ---------- Walk-Forward ----------
 function zeichneWalkForward() {
   const o = optionen();
-  $('walkforward').innerHTML = '<div class="notiz">Rechnet…</div>';
+  $('walkforward').innerHTML = o.einheit === 'tag'
+    ? '<div class="notiz">Rechnet… Bei Tagesdaten mit vielen Kandidaten kann das einige Sekunden dauern.</div>'
+    : '<div class="notiz">Rechnet…</div>';
 
   setTimeout(() => {
     const ppj = Bot.periodenProJahr(o.einheit);

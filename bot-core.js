@@ -208,12 +208,15 @@
       let umschichtung = 0;
       const alleTicker = new Set([...Object.keys(g), ...Object.keys(alt)]);
       for (const t of alleTicker) umschichtung += Math.abs((g[t] || 0) - (alt[t] || 0));
-      r -= (umschichtung / 2) * o.kosten;
+      // Turnover als "eine Seite" des Portfolioumsatzes - 100 % Turnover
+      // heisst: das gesamte Portfolio wurde in dieser Periode ausgetauscht.
+      const turnover = umschichtung / 2;
+      r -= turnover * o.kosten;
 
       kapital *= (1 + r);
       verlauf.push({
         datum: punkte[i + 1].datum, rendite: r, equity: kapital,
-        gewaehlt, cash: g[o.sicher]
+        gewaehlt, cash: g[o.sicher], turnover
       });
       alt = g;
     }
@@ -239,6 +242,12 @@
       maxDd = Math.min(maxDd, w / spitze - 1);
     }
 
+    // Turnover ist nicht bei jedem Aufrufer vorhanden (z.B. Walk-Forward
+    // reicht rohe Perioden durch) - dann bleibt das Feld undefiniert.
+    const turnoverWerte = verlauf.map(v => v.turnover).filter(x => x !== undefined);
+    const turnoverMittel = turnoverWerte.length
+      ? turnoverWerte.reduce((a, b) => a + b, 0) / turnoverWerte.length : undefined;
+
     return {
       n: r.length, periodenProJahr: periodenProJahrWert, jahre,
       endwert: eq[eq.length - 1],
@@ -249,7 +258,10 @@
       schlechtesteRendite: Math.min(...r),
       // Standardfehler: ein gemessener Sharpe ist eine Schaetzung,
       // kein Messwert.
-      sharpeFehler: Math.sqrt((1 + 0.5 * sharpe ** 2) / jahre)
+      sharpeFehler: Math.sqrt((1 + 0.5 * sharpe ** 2) / jahre),
+      turnoverMittel,
+      // Wie oft das Portfolio rechnerisch pro Jahr komplett ausgetauscht wird.
+      turnoverProJahr: turnoverMittel !== undefined ? turnoverMittel * periodenProJahrWert : undefined
     };
   }
 

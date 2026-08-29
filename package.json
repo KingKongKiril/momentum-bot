@@ -1,0 +1,8 @@
+{
+  "name": "momentum-bot",
+  "private": true,
+  "description": "Multi-Asset Momentum: Backtest, Walk-Forward und Paper-Trading - laeuft komplett im Browser, ohne Build-Schritt.",
+  "scripts": {
+    "test": "node --test"
+  }
+}
