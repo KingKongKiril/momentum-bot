@@ -102,6 +102,108 @@
         }
       ],
       "gameplayTipp": "Kombiniert die Ruß-Wolke, um Gegner auf einem Fleck zu sammeln, zündet den Feuer-Teppich direkt darunter und lasst die Inferno-Explosion für Kettenreaktionen sorgen."
+    },
+    {
+      "id": "glut-ritter",
+      "name": "Glut-Ritter",
+      "titel": null,
+      "seltenheit": "Selten",
+      "seltenheitKuerzel": "SLT",
+      "rolle": "Nahkampf-Tank",
+      "waffe": "Obsidian-Magma-Zweihänder",
+      "fokus": "Hohe Rüstung & Gegenangriffe durch Hitzeschaden",
+      "bild": "bilder/glut-ritter.png",
+      "intro": "Eine unerschütterliche Bastion aus Obsidian und schmelzendem Gestein: Der Glut-Ritter steht an vorderster Front. Je härter die Gegner ihn treffen, desto heißer brennt seine Rache.",
+      "zweige": [
+        {
+          "id": "obsidian-panzer",
+          "name": "Obsidian-Panzer",
+          "position": "links",
+          "untertitel": "Rüstung & Standhaftigkeit",
+          "faehigkeiten": [
+            {
+              "id": "haertung",
+              "name": "Härtung",
+              "typ": "Passiv",
+              "stufe": 2,
+              "beschreibung": "Erhöht die Rüstung prozentual basierend auf der bereits erlittenen Schadensmenge."
+            },
+            {
+              "id": "schmelztiegel-schild",
+              "name": "Schmelztiegel-Schild",
+              "typ": "Aktive Fähigkeit",
+              "stufe": 3,
+              "beschreibung": "Erzeugt einen Schild aus gehärtetem Obsidian. Solange der Schild aktiv ist, verlangsamt er die Angriffsgeschwindigkeit nahestehender Feinde."
+            },
+            {
+              "id": "unerschuetterlicher-vulkan",
+              "name": "Unerschütterlicher Vulkan",
+              "typ": "Ultimative Fähigkeit",
+              "stufe": 4,
+              "beschreibung": "Verankert den Ritter am Boden. Gewährt zeitweise Immunität gegen Betäubungen und reduziert jeglichen erlittenen Schaden drastisch."
+            }
+          ]
+        },
+        {
+          "id": "thermische-rache",
+          "name": "Thermische Rache",
+          "position": "mitte",
+          "untertitel": "Gegenangriff & Hitze",
+          "faehigkeiten": [
+            {
+              "id": "gluehende-vergeltung",
+              "name": "Glühende Vergeltung",
+              "typ": "Passiv",
+              "stufe": 2,
+              "beschreibung": "Jeder erhaltene Nahkampftreffer reflektiert prozentualen Hitzeschaden direkt auf den Angreifer zurück."
+            },
+            {
+              "id": "hitzewelle",
+              "name": "Hitzewelle",
+              "typ": "AoE-Schwächung",
+              "stufe": 3,
+              "beschreibung": "Stößt eine Hitzewelle aus den Rüstungsspalten aus, die die Rüstung umliegender Gegner schmilzt und Brand-Debuffs aufträgt."
+            },
+            {
+              "id": "lava-eruption",
+              "name": "Lava-Eruption",
+              "typ": "Ultimative Fähigkeit",
+              "stufe": 4,
+              "beschreibung": "Absorbiert den in den letzten 4 Sekunden erlittenen Schaden und entlädt ihn in einer verheerenden Magma-Explosion im direkten Umkreis."
+            }
+          ]
+        },
+        {
+          "id": "magma-klinge",
+          "name": "Magma-Klinge",
+          "position": "rechts",
+          "untertitel": "Waffen-Meisterschaft",
+          "faehigkeiten": [
+            {
+              "id": "spaltender-schwung",
+              "name": "Spaltender Schwung",
+              "typ": "Nahkampf",
+              "stufe": 2,
+              "beschreibung": "Ein weiter Schlag mit dem Zweihänder, der eine brennende Schneise auf dem Boden hinterlässt."
+            },
+            {
+              "id": "glut-aufladung",
+              "name": "Glut-Aufladung",
+              "typ": "Verstärkung",
+              "stufe": 3,
+              "beschreibung": "Überzieht die Klinge mit flüssiger Lava. Der nächste Angriff durchbricht gegnerische Schilde und verursacht erhöhten Flächenschaden."
+            },
+            {
+              "id": "meister-der-magma-schneide",
+              "name": "Meister der Magma-Schneide",
+              "typ": "Ultimative Meisterschaft",
+              "stufe": 4,
+              "beschreibung": "Jeder erlittene Treffer erhöht das eigene Angriffstempo und verstärkt den reflektierten Hitzeschaden."
+            }
+          ]
+        }
+      ],
+      "gameplayTipp": "Platziert den Glut-Ritter mitten in der gegnerischen Ansammlung. Aktiviert den Schmelztiegel-Schild, absorbiert den ersten Ansturm und entladet die gesammelte Energie mit Lava-Eruption für maximalen Konterschaden."
     }
   ]
 }
