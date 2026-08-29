@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "helden": [
+    {
+      "id": "igne-russ-pyroman",
+      "name": "Igne",
+      "titel": "Der Ruß-Pyroman",
+      "seltenheit": "Gewöhnlich",
+      "seltenheitKuerzel": "GWN",
+      "rolle": "Bereichsschaden (AoE)",
+      "waffe": "Ruß-Stab mit glühendem Kohlebecken",
+      "fokus": "Brand-Debuffs, Flächenfeuer & Schlachtfeldkontrolle",
+      "bild": "bilder/igne-russ-pyroman.png",
+      "intro": "Wenn der Rauch aufsteigt, folgt Igne nicht dem Feuer – er ist die Asche, die alles verschlingt. Ausgerüstet mit seinem schweren Ruß-Stab zündet dieser AoE-Spezialist ganze Feindwellen an und schwächt alles, was im Funkenflug überlebt.",
+      "zweige": [
+        {
+          "id": "flaechenfeuer",
+          "name": "Flächenfeuer",
+          "position": "links",
+          "untertitel": "AoE-Schaden",
+          "faehigkeiten": [
+            {
+              "id": "brennende-gasse",
+              "name": "Brennende Gasse",
+              "typ": "Aktive Fähigkeit",
+              "stufe": 2,
+              "beschreibung": "Igne zieht eine Flammenlinie über den Boden. Gegner, die sie kreuzen, erleiden direkten Feuerschaden und fangen Feuer."
+            },
+            {
+              "id": "feuer-teppich",
+              "name": "Feuer-Teppich",
+              "typ": "Flächenschaden",
+              "stufe": 3,
+              "beschreibung": "Verwandelt eine Zielzone in ein loderndes Flammenmeer. Fügt allen Einheiten im Bereich kontinuierlichen Schaden pro Sekunde zu."
+            },
+            {
+              "id": "hoellenfeuer-regen",
+              "name": "Höllenfeuer-Regen",
+              "typ": "Ultimative Fähigkeit",
+              "stufe": 4,
+              "beschreibung": "Beschwört einen verheerenden Asche- und Glutregen auf ein großes Areal. Richtet über mehrere Sekunden enormen Flächenschaden an."
+            }
+          ]
+        },
+        {
+          "id": "rauch-und-kontrolle",
+          "name": "Rauch & Kontrolle",
+          "position": "mitte",
+          "untertitel": "Debuff-Fokus",
+          "faehigkeiten": [
+            {
+              "id": "russ-wolke",
+              "name": "Ruß-Wolke",
+              "typ": "Debuff",
+              "stufe": 2,
+              "beschreibung": "Schleudert eine dichte Rauchwolke ins Zielgebiet. Blendet Feinde, senkt deren Trefferchance und verringert ihr Bewegungstempo."
+            },
+            {
+              "id": "asche-mantel",
+              "name": "Asche-Mantel",
+              "typ": "Defensiv",
+              "stufe": 3,
+              "beschreibung": "Umhüllt Igne mit einer Schicht aus glühender Kohle. Absorbiert eingehenden Schaden und fügt Angreifern im Nahkampf Feuerschaden zu."
+            },
+            {
+              "id": "inferno-explosion",
+              "name": "Inferno-Explosion",
+              "typ": "Passive Fähigkeit",
+              "stufe": 4,
+              "beschreibung": "Gegner, die unter Brand-Effekten leiden und sterben, detonieren in einer Aschewolke und übertragen die Brand-Debuffs auf umstehende Feinde."
+            }
+          ]
+        },
+        {
+          "id": "stab-und-glut",
+          "name": "Stab & Glut",
+          "position": "rechts",
+          "untertitel": "Waffen-Meisterschaft",
+          "faehigkeiten": [
+            {
+              "id": "verbrennender-hieb",
+              "name": "Verbrennender Hieb",
+              "typ": "Nahkampf",
+              "stufe": 2,
+              "beschreibung": "Ein wuchtiger Schlag mit dem Kohlebecken des Stabs. Verursacht physischen Schaden und betäubt das Ziel kurzzeitig."
+            },
+            {
+              "id": "glut-aura",
+              "name": "Glut-Aura",
+              "typ": "Aura",
+              "stufe": 3,
+              "beschreibung": "Strahlt Hitze aus, die den Feuerschaden aller Verbündeten im Umkreis erhöht und gegnerischen Rüstungsschutz durch Hitze schmelzen lässt."
+            },
+            {
+              "id": "meister-des-russes",
+              "name": "Meister des Rußes",
+              "typ": "Ultimative Meisterschaft",
+              "stufe": 4,
+              "beschreibung": "Verdoppelt die Dauer aller aktiven Brand-Debuffs auf dem Schlachtfeld und gewährt kritischen Zusatzschaden gegen brennende Ziele."
+            }
+          ]
+        }
+      ],
+      "gameplayTipp": "Kombiniert die Ruß-Wolke, um Gegner auf einem Fleck zu sammeln, zündet den Feuer-Teppich direkt darunter und lasst die Inferno-Explosion für Kettenreaktionen sorgen."
+    }
+  ]
+}
