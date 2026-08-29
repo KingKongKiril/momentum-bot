@@ -204,6 +204,126 @@
         }
       ],
       "gameplayTipp": "Platziert den Glut-Ritter mitten in der gegnerischen Ansammlung. Aktiviert den Schmelztiegel-Schild, absorbiert den ersten Ansturm und entladet die gesammelte Energie mit Lava-Eruption für maximalen Konterschaden."
+    },
+    {
+      "id": "ignis-aschenkaiser",
+      "name": "Ignis",
+      "titel": "Der Aschenkaiser",
+      "fraktion": "Die Aschenwächter",
+      "seltenheit": "Legendär",
+      "seltenheitKuerzel": "LGD",
+      "rolle": "Magischer Carry",
+      "powerLevel": 9500,
+      "waffe": "Die Flamme der Urschöpfung",
+      "fokus": "Hoher Magieschaden, Rüstungsbruch & flächendeckender Dauerbrand",
+      "bild": "bilder/ignis-aschenkaiser.png",
+      "intro": null,
+      "optik": {
+        "pose": "Schwebt berührungslos über schmelzendem Obsidianboden.",
+        "ruestung": "Schwebende Basaltplatten, zusammengehalten von weißgoldener Magma-Aura.",
+        "fluegel": "Vier Flügel aus reiner, gleißender Urflamme.",
+        "waffe": "Die Flamme der Urschöpfung (rotierendes Kristall-Oktaeder).",
+        "hintergrund": "Vulkanischer Thronsaal mit schmelzendem Glasboden."
+      },
+      "werte": {
+        "hp": 2800,
+        "angriff": 1200,
+        "verteidigung": 950,
+        "tempo": 80
+      },
+      "ausruestung": [
+        {
+          "id": "eq_ignis_01",
+          "name": "Die Flamme der Urschöpfung",
+          "slot": "waffe",
+          "bonus": {
+            "angriff": 450,
+            "kritchance": 0.15
+          }
+        },
+        {
+          "id": "eq_ignis_02",
+          "name": "Krone des Vulkanfürsten",
+          "slot": "kopf",
+          "bonus": {
+            "hp": 600,
+            "verteidigung": 100
+          }
+        },
+        {
+          "id": "eq_ignis_03",
+          "name": "Basalt-Aura-Harnisch",
+          "slot": "brust",
+          "bonus": {
+            "verteidigung": 350,
+            "hp": 400
+          }
+        },
+        {
+          "id": "eq_ignis_04",
+          "name": "Sonnen-Handschuhe",
+          "slot": "haende",
+          "bonus": {
+            "tempo": 20,
+            "angriff": 150
+          }
+        }
+      ],
+      "faehigkeiten": [
+        {
+          "id": "sk_ur_hitze",
+          "slot": "passiv",
+          "name": "Ur-Hitze",
+          "typ": "Passiv",
+          "beschreibung": "Wandelt 20% des erlittenen Schadens in einen Schutzschild um und fügt allen Umstehenden 200 DPS Feuerschaden zu.",
+          "schadensart": "feuer",
+          "werte": {
+            "schildumwandlung": 0.2,
+            "auraDps": 200
+          }
+        },
+        {
+          "id": "sk_magma_kompression",
+          "slot": "aktiv1",
+          "name": "Magma-Kompression",
+          "typ": "Aktive Fähigkeit",
+          "beschreibung": "Fügt einem Einzelziel 1800 Magieschaden zu und verringert dessen Rüstung 3 Runden lang um 40%.",
+          "zielart": "einzelziel",
+          "abklingzeit": 3,
+          "werte": {
+            "schaden": 1800,
+            "ruestungsreduktion": 0.4,
+            "debuffDauer": 3
+          }
+        },
+        {
+          "id": "sk_vulkanausbruch",
+          "slot": "aktiv2",
+          "name": "Vulkanausbruch",
+          "typ": "Flächenschaden",
+          "beschreibung": "Erzeugt ein schmelzendes Magmafeld für 800 AoE-Schaden und verlangsamt betroffene Feinde um 50%.",
+          "zielart": "flaeche",
+          "abklingzeit": 4,
+          "werte": {
+            "schaden": 800,
+            "verlangsamung": 0.5
+          }
+        },
+        {
+          "id": "sk_kataklysmus",
+          "slot": "ultimativ",
+          "name": "Kataklysmus",
+          "typ": "Ultimative Fähigkeit",
+          "beschreibung": "Vernichtende Feuer-Explosion: Fügt allen Feinden 3500 Schaden zu und hinterlässt 6 Runden lang brennenden Zonen-Schaden.",
+          "zielart": "alle-gegner",
+          "abklingzeit": 7,
+          "werte": {
+            "schaden": 3500,
+            "zonenbrandDauer": 6
+          }
+        }
+      ],
+      "gameplayTipp": null
     }
   ]
 }

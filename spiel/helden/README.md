@@ -31,6 +31,11 @@ helden[]           Liste aller Helden
   fokus            Ein-Satz-Zusammenfassung der Spielweise
   bild             Pfad relativ zu diesem Ordner
   intro            Sprecher-Text fuer das Spotlight
+  gameplayTipp     Empfohlene Kombination (null, wenn noch keine)
+
+Dazu genau EINE der beiden Formen:
+
+Form A – Skill-Baum (Igne, Glut-Ritter)
   zweige[]         Die drei Skill-Zweige
     id, name       Kennung und Anzeigename
     position       "links" | "mitte" | "rechts" (Lage im Skill-Baum)
@@ -40,7 +45,23 @@ helden[]           Liste aller Helden
       typ          z. B. "Aktive Fähigkeit", "Passive Fähigkeit", "Aura"
       stufe        Ebene im Skill-Baum (2 = oberste Reihe, 4 = unterste)
       beschreibung Wirkung im Klartext
-  gameplayTipp     Empfohlene Kombination
+
+Form B – feste Slots mit Zahlen (Ignis)
+  fraktion         Zugehoerigkeit, siehe mechaniken.json
+  powerLevel       Gesamtstaerke des Helden
+  optik            Pose, Ruestung, Fluegel, Waffe, Hintergrund
+  werte            hp, angriff, verteidigung, tempo
+  ausruestung[]    Vier Slots mit Wertboni
+    id, name       Kennung und Anzeigename
+    slot           "waffe" | "kopf" | "brust" | "haende"
+    bonus          Wertname -> Zahl (Prozente als Anteil, 0.15 = 15 %)
+  faehigkeiten[]   Genau vier, in dieser Reihenfolge
+    slot           "passiv" | "aktiv1" | "aktiv2" | "ultimativ"
+    id, name, typ  wie oben
+    zielart        "einzelziel" | "flaeche" | "alle-gegner"
+    abklingzeit    Runden (fehlt beim Passiv)
+    werte          Schaden, Prozentsaetze, Dauern
+    beschreibung   Wirkung im Klartext
 ```
 
 ## Neuen Helden aufnehmen

@@ -10,6 +10,11 @@
       "kuerzel": "SLT",
       "name": "Selten",
       "rang": 2
+    },
+    {
+      "kuerzel": "LGD",
+      "name": "Legendär",
+      "rang": 3
     }
   ],
   "rollen": [
@@ -22,6 +27,11 @@
       "id": "nahkampf-tank",
       "name": "Nahkampf-Tank",
       "aufgabe": "Schaden aufnehmen, Front halten, kontern"
+    },
+    {
+      "id": "magischer-carry",
+      "name": "Magischer Carry",
+      "aufgabe": "Hoher Einzel- und Flächenschaden aus der zweiten Reihe"
     }
   ],
   "skillbaum": {
@@ -153,6 +163,18 @@
       "name": "Betäubungs-Immunität",
       "wirkung": "Held ignoriert Betäubungen zeitweise",
       "ziel": "selbst"
+    },
+    {
+      "id": "schutzschild",
+      "name": "Schutzschild",
+      "wirkung": "Absorbiert Schaden, hier gespeist aus erlittenem Schaden",
+      "ziel": "selbst"
+    },
+    {
+      "id": "zonenbrand",
+      "name": "Zonen-Brand",
+      "wirkung": "Brennender Boden schadet ueber mehrere Runden im Bereich",
+      "ziel": "gegner"
     }
   ],
   "kernmechaniken": [
@@ -200,16 +222,139 @@
       "id": "verbuendeten-verstaerkung",
       "name": "Verbündeten-Verstärkung",
       "beschreibung": "Auren erhöhen Werte aller Verbündeten im Umkreis."
+    },
+    {
+      "id": "schadensumwandlung",
+      "name": "Schadensumwandlung in Schild",
+      "beschreibung": "Ein Anteil des erlittenen Schadens wird zu einem Schutzschild – Ur-Hitze wandelt 20% um."
+    },
+    {
+      "id": "ruestungsbruch",
+      "name": "Rüstungsbruch",
+      "beschreibung": "Senkt die gegnerische Rüstung um einen Prozentsatz fuer eine feste Rundenzahl (Magma-Kompression: 40% ueber 3 Runden)."
+    },
+    {
+      "id": "abklingzeiten",
+      "name": "Abklingzeiten",
+      "beschreibung": "Aktive Faehigkeiten haben Abklingzeiten in Runden – gestaffelt 3 / 4 / 7 fuer Aktiv 1, Aktiv 2 und Ultimativ."
+    },
+    {
+      "id": "ausruestung",
+      "name": "Ausrüstung",
+      "beschreibung": "Vier Slots (Waffe, Helm, Brust, Handschuhe) geben additive Wertboni und speisen das Power Level."
     }
   ],
   "offen": [
     "Zahlenwerte: Schaden, Rüstung, Trefferpunkte, Prozentsätze der Passiven",
-    "Cooldowns und Kosten: Mana, Hitze oder eine andere Ressource?",
     "Level-Kurve: Wie kommt ein Held von Lv 1 auf Lv 4?",
     "Lv 1: Der Baum beginnt bei Lv 2 – was hat ein Held davor?",
     "Stapeln: Wie oft stapelt Brand, wie addieren sich zwei Rüstungs-Debuffs?",
-    "Weitere Seltenheitsstufen über GWN und SLT hinaus",
     "Weitere Elemente neben Feuer",
-    "Teamgröße: Wie viele Helden stehen gleichzeitig im Kampf?"
+    "Teamgröße: Wie viele Helden stehen gleichzeitig im Kampf?",
+    "Runden oder Sekunden? Ignis rechnet in Runden, Igne und Glut-Ritter in Sekunden bzw. DPS",
+    "Zwei Heldenformen: 3-Zweige-Skillbaum (Igne, Glut-Ritter) gegen vier feste Slots (Ignis) – welche gilt?",
+    "Werte fuer Igne und Glut-Ritter fehlen noch (HP, Angriff, Verteidigung, Tempo)",
+    "Wie berechnet sich das Power Level aus Werten und Ausruestung?",
+    "Fraktionen: nur Die Aschenwaechter bekannt, Wirkung im Spiel offen",
+    "Ressourcenkosten: Abklingzeiten sind da, aber gibt es zusaetzlich Mana o. ae.?"
+  ],
+  "fraktionen": [
+    {
+      "id": "aschenwaechter",
+      "name": "Die Aschenwächter",
+      "helden": [
+        "ignis-aschenkaiser"
+      ]
+    }
+  ],
+  "kampfsystem": {
+    "rundenbasiert": true,
+    "hinweis": "Abklingzeiten und Debuff-Dauern werden in Runden gezaehlt. Aeltere Steckbriefe sprechen von Sekunden – siehe offene Punkte."
+  },
+  "werte": [
+    {
+      "id": "hp",
+      "name": "HP",
+      "beschreibung": "Trefferpunkte"
+    },
+    {
+      "id": "angriff",
+      "name": "Angriff",
+      "beschreibung": "Grundlage des ausgeteilten Schadens"
+    },
+    {
+      "id": "verteidigung",
+      "name": "Verteidigung",
+      "beschreibung": "Mindert eingehenden Schaden"
+    },
+    {
+      "id": "tempo",
+      "name": "Geschwindigkeit",
+      "beschreibung": "Bestimmt die Zugreihenfolge"
+    },
+    {
+      "id": "kritchance",
+      "name": "Kritische Trefferchance",
+      "beschreibung": "Anteil kritischer Treffer, nur ueber Ausruestung"
+    },
+    {
+      "id": "powerLevel",
+      "name": "Power Level",
+      "beschreibung": "Gesamtstaerke des Helden, aus Werten und Ausruestung"
+    }
+  ],
+  "ausruestungsSlots": [
+    {
+      "id": "waffe",
+      "name": "Waffe"
+    },
+    {
+      "id": "kopf",
+      "name": "Helm"
+    },
+    {
+      "id": "brust",
+      "name": "Brustplatte"
+    },
+    {
+      "id": "haende",
+      "name": "Handschuhe"
+    }
+  ],
+  "faehigkeitsSlots": [
+    {
+      "id": "passiv",
+      "name": "Passiv",
+      "beschreibung": "Dauerhaft aktiv, keine Abklingzeit"
+    },
+    {
+      "id": "aktiv1",
+      "name": "Aktiv 1",
+      "beschreibung": "Erste aktive Faehigkeit"
+    },
+    {
+      "id": "aktiv2",
+      "name": "Aktiv 2",
+      "beschreibung": "Zweite aktive Faehigkeit"
+    },
+    {
+      "id": "ultimativ",
+      "name": "Ultimativ",
+      "beschreibung": "Staerkste Faehigkeit, laengste Abklingzeit"
+    }
+  ],
+  "zielarten": [
+    {
+      "id": "einzelziel",
+      "name": "Einzelziel"
+    },
+    {
+      "id": "flaeche",
+      "name": "Fläche (AoE)"
+    },
+    {
+      "id": "alle-gegner",
+      "name": "Alle Gegner"
+    }
   ]
 }
