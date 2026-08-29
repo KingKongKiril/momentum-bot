@@ -227,8 +227,12 @@
 
   // ---------- Kennzahlen ----------
   // periodenProJahrWert: 12 fuer Monatsrenditen, 252 fuer Tagesrenditen.
-  function kennzahlen(verlauf, periodenProJahrWert) {
+  // mitTurnover: false spart die Turnover-Aggregation - genutzt im
+  // Walk-Forward-Kandidatenvergleich, der pro Fenster viele Backtests
+  // durchrechnet und davon nur den Sharpe liest.
+  function kennzahlen(verlauf, periodenProJahrWert, mitTurnover) {
     periodenProJahrWert = periodenProJahrWert || 12;
+    if (mitTurnover === undefined) mitTurnover = true;
     const r = verlauf.map(v => v.rendite);
     const eq = verlauf.map(v => v.equity);
     const jahre = r.length / periodenProJahrWert;
@@ -242,11 +246,15 @@
       maxDd = Math.min(maxDd, w / spitze - 1);
     }
 
-    // Turnover ist nicht bei jedem Aufrufer vorhanden (z.B. Walk-Forward
-    // reicht rohe Perioden durch) - dann bleibt das Feld undefiniert.
-    const turnoverWerte = verlauf.map(v => v.turnover).filter(x => x !== undefined);
-    const turnoverMittel = turnoverWerte.length
-      ? turnoverWerte.reduce((a, b) => a + b, 0) / turnoverWerte.length : undefined;
+    // Turnover fehlt nur, wenn jemand verlauf-Eintraege selbst zusammenbaut
+    // statt sie aus backtest() zu beziehen (z.B. in Tests) - dann bleibt
+    // das Feld undefiniert.
+    let turnoverMittel;
+    if (mitTurnover) {
+      const turnoverWerte = verlauf.map(v => v.turnover).filter(x => x !== undefined);
+      turnoverMittel = turnoverWerte.length
+        ? turnoverWerte.reduce((a, b) => a + b, 0) / turnoverWerte.length : undefined;
+    }
 
     return {
       n: r.length, periodenProJahr: periodenProJahrWert, jahre,
@@ -413,7 +421,7 @@
         try {
           const v = backtest(training, Object.assign({ sicher: o.sicher, kosten: o.kosten, einheit }, k));
           if (v.length < minSchritteBacktest) continue;
-          const s = kennzahlen(v, ppj).sharpe;
+          const s = kennzahlen(v, ppj, false).sharpe;
           if (isFinite(s) && s > besterWert) { besterWert = s; bester = k; }
         } catch (e) { /* Kandidat unbrauchbar */ }
       }

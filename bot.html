@@ -520,7 +520,8 @@ function zeichneBacktest(o) {
     <b>${Math.round(k.turnoverMittel * 100)} %</b> je ${tag ? 'Handelstag' : 'Monat'} umgeschichtet —
     hochgerechnet <b>${k.turnoverProJahr.toFixed(1)}×</b> pro Jahr. Bei
     ${(o.kosten * 100).toFixed(2).replace('.', ',')} % Kosten je Umschichtung macht allein das
-    näherungsweise <b>${pz(-kostenlastPa, 1)}</b> Kostenlast pro Jahr aus (im Backtest bereits
+    näherungsweise <b>${(kostenlastPa * 100).toFixed(1).replace('.', ',').replace('-', '')} %</b>
+    Kostenlast pro Jahr aus (im Backtest bereits
     eingerechnet, nicht zusätzlich abzuziehen).</div>
     ${k.n < ppj * 10 ? '<div class="notiz gelb">Weniger als 10 Jahre Daten. Für eine belastbare Aussage zu wenig.</div>' : ''}`;
 }
