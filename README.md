@@ -13,3 +13,8 @@ nur den in Node eingebauten Testrunner nutzt (keine Abhaengigkeiten):
 ```
 npm test
 ```
+
+## Spiel
+
+Unter `spiel/` liegt ein davon unabhaengiges Projekt: Helden-Steckbriefe und
+Spielmechaniken fuer ein Helden-Spiel. Siehe [`spiel/README.md`](spiel/README.md).

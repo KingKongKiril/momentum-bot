@@ -1,0 +1,215 @@
+{
+  "version": 1,
+  "seltenheiten": [
+    {
+      "kuerzel": "GWN",
+      "name": "Gewöhnlich",
+      "rang": 1
+    },
+    {
+      "kuerzel": "SLT",
+      "name": "Selten",
+      "rang": 2
+    }
+  ],
+  "rollen": [
+    {
+      "id": "aoe",
+      "name": "Bereichsschaden (AoE)",
+      "aufgabe": "Schaden auf Gruppen, Debuffs streuen"
+    },
+    {
+      "id": "nahkampf-tank",
+      "name": "Nahkampf-Tank",
+      "aufgabe": "Schaden aufnehmen, Front halten, kontern"
+    }
+  ],
+  "skillbaum": {
+    "zweigeProHeld": 3,
+    "positionen": [
+      "links",
+      "mitte",
+      "rechts"
+    ],
+    "ebenen": [
+      {
+        "stufe": 2,
+        "bedeutung": "Einstiegsfähigkeit des Zweigs"
+      },
+      {
+        "stufe": 3,
+        "bedeutung": "Ausbau, deutlich stärkere Wirkung"
+      },
+      {
+        "stufe": 4,
+        "bedeutung": "Ultimative Fähigkeit bzw. Ultimative Meisterschaft"
+      }
+    ],
+    "zweigeUeberkreuzVerbunden": true
+  },
+  "faehigkeitstypen": [
+    {
+      "id": "aktiv",
+      "name": "Aktive Fähigkeit",
+      "wirkung": "Wird gezielt gezündet, hat Wirkdauer bzw. Zielzone"
+    },
+    {
+      "id": "passiv",
+      "name": "Passiv",
+      "wirkung": "Dauerhaft aktiv, kein Einsatz nötig",
+      "aliase": [
+        "Passive Fähigkeit"
+      ]
+    },
+    {
+      "id": "aura",
+      "name": "Aura",
+      "wirkung": "Wirkt im Umkreis auf Verbündete und/oder Gegner"
+    },
+    {
+      "id": "flaechenschaden",
+      "name": "Flächenschaden",
+      "wirkung": "Verwandelt eine Zone in eine anhaltende Schadensfläche"
+    },
+    {
+      "id": "aoe-schwaechung",
+      "name": "AoE-Schwächung",
+      "wirkung": "Schwächt mehrere Gegner im Umkreis gleichzeitig"
+    },
+    {
+      "id": "debuff",
+      "name": "Debuff",
+      "wirkung": "Schwächt Gegner, ohne primär Schaden zu machen"
+    },
+    {
+      "id": "defensiv",
+      "name": "Defensiv",
+      "wirkung": "Schützt den Helden selbst"
+    },
+    {
+      "id": "verstaerkung",
+      "name": "Verstärkung",
+      "wirkung": "Lädt den nächsten Angriff auf"
+    },
+    {
+      "id": "nahkampf",
+      "name": "Nahkampf",
+      "wirkung": "Direkter Waffenangriff"
+    },
+    {
+      "id": "ultimativ",
+      "name": "Ultimative Fähigkeit",
+      "wirkung": "Stärkster aktiver Effekt, Ebene Lv 4"
+    },
+    {
+      "id": "ultimative-meisterschaft",
+      "name": "Ultimative Meisterschaft",
+      "wirkung": "Passive Lv-4-Fähigkeit, verändert den Kampfstil"
+    }
+  ],
+  "schadensarten": [
+    {
+      "id": "feuer",
+      "name": "Feuer- / Hitzeschaden"
+    },
+    {
+      "id": "physisch",
+      "name": "Physischer Schaden"
+    }
+  ],
+  "statuseffekte": [
+    {
+      "id": "brand",
+      "name": "Brand",
+      "wirkung": "Schaden über Zeit, stapelbar bzw. verlängerbar",
+      "ziel": "gegner"
+    },
+    {
+      "id": "ruestung-schmelzen",
+      "name": "Rüstung schmelzen",
+      "wirkung": "Senkt gegnerische Rüstung",
+      "ziel": "gegner"
+    },
+    {
+      "id": "blenden",
+      "name": "Blenden",
+      "wirkung": "Senkt gegnerische Trefferchance",
+      "ziel": "gegner"
+    },
+    {
+      "id": "verlangsamen",
+      "name": "Verlangsamen",
+      "wirkung": "Senkt Bewegungs- oder Angriffstempo",
+      "ziel": "gegner"
+    },
+    {
+      "id": "betaeubung",
+      "name": "Betäubung",
+      "wirkung": "Ziel ist kurz handlungsunfähig",
+      "ziel": "gegner"
+    },
+    {
+      "id": "betaeubungs-immunitaet",
+      "name": "Betäubungs-Immunität",
+      "wirkung": "Held ignoriert Betäubungen zeitweise",
+      "ziel": "selbst"
+    }
+  ],
+  "kernmechaniken": [
+    {
+      "id": "dot",
+      "name": "Schaden über Zeit",
+      "beschreibung": "Brand tickt weiter, Flächen wie der Feuer-Teppich schaden pro Sekunde."
+    },
+    {
+      "id": "debuff-verlaengerung",
+      "name": "Debuff-Verlängerung",
+      "beschreibung": "Verdoppelt die Dauer aller aktiven Brand-Debuffs auf dem Schlachtfeld, global statt nur eigene."
+    },
+    {
+      "id": "kettenreaktion",
+      "name": "Kettenreaktion",
+      "beschreibung": "Brennende Gegner detonieren beim Tod und übertragen ihre Debuffs auf Umstehende."
+    },
+    {
+      "id": "schadensreflexion",
+      "name": "Schadensreflexion",
+      "beschreibung": "Ein Teil des erhaltenen Nahkampfschadens geht an den Angreifer zurück."
+    },
+    {
+      "id": "skalierung-erlittener-schaden",
+      "name": "Skalierung mit erlittenem Schaden",
+      "beschreibung": "Werte steigen mit dem bereits kassierten Schaden – der Held wird im Kampfverlauf stärker."
+    },
+    {
+      "id": "schaden-speichern",
+      "name": "Schaden speichern und entladen",
+      "beschreibung": "Sammelt den Schaden eines Zeitfensters und zündet ihn als Explosion."
+    },
+    {
+      "id": "absorption",
+      "name": "Schadensabsorption",
+      "beschreibung": "Schilde und Mäntel fangen eingehenden Schaden ab, teils mit Konterschaden."
+    },
+    {
+      "id": "schildbruch",
+      "name": "Schildbruch",
+      "beschreibung": "Der nächste Angriff durchschlägt gegnerische Schilde."
+    },
+    {
+      "id": "verbuendeten-verstaerkung",
+      "name": "Verbündeten-Verstärkung",
+      "beschreibung": "Auren erhöhen Werte aller Verbündeten im Umkreis."
+    }
+  ],
+  "offen": [
+    "Zahlenwerte: Schaden, Rüstung, Trefferpunkte, Prozentsätze der Passiven",
+    "Cooldowns und Kosten: Mana, Hitze oder eine andere Ressource?",
+    "Level-Kurve: Wie kommt ein Held von Lv 1 auf Lv 4?",
+    "Lv 1: Der Baum beginnt bei Lv 2 – was hat ein Held davor?",
+    "Stapeln: Wie oft stapelt Brand, wie addieren sich zwei Rüstungs-Debuffs?",
+    "Weitere Seltenheitsstufen über GWN und SLT hinaus",
+    "Weitere Elemente neben Feuer",
+    "Teamgröße: Wie viele Helden stehen gleichzeitig im Kampf?"
+  ]
+}

@@ -8,6 +8,10 @@ Sammlung der Helden-Steckbriefe. Jeder Held hat zwei Dateien:
 
 Bilder liegen unter `bilder/<held-id>.png`.
 
+Rollen, Seltenheiten und Faehigkeitstypen kommen aus
+[`../mechaniken.json`](../mechaniken.json) – neue Begriffe dort zuerst
+ergaenzen, sonst schlagen die Tests fehl.
+
 ## Bestand
 
 | Held | Rolle | Seltenheit | Steckbrief |
@@ -44,4 +48,6 @@ helden[]           Liste aller Helden
 1. Bild als `bilder/<held-id>.png` ablegen.
 2. Steckbrief `<held-id>.md` nach dem Muster von `igne-russ-pyroman.md`
    schreiben.
-3. Eintrag in `helden.json` ergaenzen und die Tabelle oben erweitern.
+3. Eintrag in `helden.json` ergaenzen und die Tabellen in dieser Datei und
+   in [`../README.md`](../README.md) erweitern.
+4. `npm test` laufen lassen – die Tests pruefen Form und Vokabular.
