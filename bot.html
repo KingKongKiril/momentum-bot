@@ -134,7 +134,8 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--tinte);
   <p class="regel">
     Lädt eine Kursdatei, prüft sie, berechnet das aktuelle Signal und rechnet
     den Backtest durch. Es werden keine Daten übertragen und keine Orders
-    ausgelöst.
+    ausgelöst. Zwei Modi: monatliches Momentum (Positionen halten) oder
+    tägliches Rebalancing (Day-Trading).
   </p>
 </header>
 
@@ -166,6 +167,13 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--tinte);
   <fieldset>
     <legend>Parameter</legend>
     <div class="regler">
+      <div style="grid-column:1/-1">
+        <label for="einheit">Handelsmodus</label>
+        <select id="einheit">
+          <option value="monat">Monatlich (Positionen halten)</option>
+          <option value="tag">Täglich (Day-Trading)</option>
+        </select>
+      </div>
       <div>
         <label for="sicher">Geldmarkt-Ticker</label>
         <select id="sicher"></select>
@@ -175,7 +183,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--tinte);
         <input type="range" id="topn" min="1" max="8" value="4">
       </div>
       <div>
-        <label for="perioden">Momentum-Zeiträume (Monate)</label>
+        <label for="perioden" id="periodenLabel">Momentum-Zeiträume (Monate)</label>
         <input type="text" id="perioden" value="3,6,12">
       </div>
       <div>
@@ -185,6 +193,7 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--tinte);
     </div>
     <button id="rechnen">Neu berechnen</button>
   </fieldset>
+  <div id="modushinweis"></div>
   <div id="drehwarnung"></div>
 </section>
 
@@ -198,9 +207,10 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--tinte);
   <div class="eyebrow"><span>Paper-Trading</span><span>Kein echtes Geld</span></div>
   <h2>Journal</h2>
   <p>
-    Am Monatsanfang das Signal eintragen, im Folgemonat das Ergebnis nachtragen.
-    Ein eingetragener Monat kann nicht mehr geändert werden — wer seine
-    Prognosen im Nachhinein korrigiert, misst nichts mehr.
+    Nach jeder Neuberechnung das aktuelle Signal eintragen, in der nächsten
+    Periode das Ergebnis nachtragen. Ein eingetragener Eintrag kann nicht
+    mehr geändert werden — wer seine Prognosen im Nachhinein korrigiert,
+    misst nichts mehr.
   </p>
   <div class="kacheln" id="pKacheln"></div>
   <div id="pAktion"></div>
@@ -378,14 +388,29 @@ function einlesen(text, opt) {
 
 // ---------- Rechnen ----------
 function optionen() {
+  const einheit = $('einheit').value;
   const perioden = $('perioden').value.split(/[,;\s]+/)
     .map(x => parseInt(x, 10)).filter(x => x > 0);
   return {
+    einheit,
     sicher: $('sicher').value,
     topN: parseInt($('topn').value, 10),
-    perioden: perioden.length ? perioden : [3, 6, 12],
-    kosten: parseInt($('kosten').value, 10) / 1000
+    perioden: perioden.length ? perioden : (einheit === 'tag' ? [5, 10, 20] : [3, 6, 12]),
+    kosten: parseInt($('kosten').value, 10) / 1000,
+    // Vola-Fenster in Handelstagen - bei Day-Trading kuerzer, damit
+    // die Schaetzung schneller auf neue Schwankung reagiert.
+    volaFenster: einheit === 'tag' ? 20 : 60
   };
+}
+
+function periodenWort(o, einzahl) {
+  if (o.einheit === 'tag') return einzahl ? 'Handelstag' : 'Handelstage';
+  return einzahl ? 'Monat' : 'Monate';
+}
+// Dativ ("bei X ...") - Plural braucht ein -n, das die Grundform nicht hat.
+function periodenWortDativ(o, einzahl) {
+  if (o.einheit === 'tag') return einzahl ? 'Handelstag' : 'Handelstagen';
+  return einzahl ? 'Monat' : 'Monaten';
 }
 
 function rechnen() {
@@ -404,7 +429,7 @@ function rechnen() {
   zeichneBacktest(o);
   zeichneZufall(o);
   zeichneRegime(o);
-  zeichneHebel();
+  zeichneHebel(o);
   // Walk-Forward laeuft nur auf Knopfdruck - er rechnet
   // hunderte Backtests und wuerde die Oberflaeche blockieren.
   $('walkforward').innerHTML =
@@ -440,38 +465,53 @@ function zeichneSignal(sig, o) {
   }).join('');
 
   const cash = sig.gewichte[o.sicher] || 0;
+  let notiz;
+  if (o.einheit === 'tag') {
+    const alterTage = Math.floor((Date.now() - sig.basis) / 864e5);
+    notiz = `<div class="notiz">Signal auf Basis des letzten abgeschlossenen
+      Handelstages.</div>
+      <div class="notiz${alterTage > 3 ? ' warn' : ''}">Letzter Datenpunkt ist
+      <b>${alterTage} Tage</b> alt. ${alterTage > 3
+        ? 'Für ein tagesaktuelles Day-Trading-Signal zu alt — Kursdatei neu laden.'
+        : 'Für Day-Trading muss die Kursdatei an jedem Handelstag neu geladen werden.'}</div>`;
+  } else {
+    notiz = `<div class="notiz">Signal auf Basis des letzten <b>abgeschlossenen</b> Monats.
+    Der laufende Monat wird verworfen — sonst beruht die Rangliste auf wenigen
+    Handelstagen, die als volle Monatsrendite gelesen würden.</div>`;
+  }
   $('signal').innerHTML = `
     <table><thead><tr><th>Anlage</th><th>Momentum</th><th>Vola</th><th>Gewicht</th></tr></thead>
     <tbody>${zeilen}
     <tr class="gewaehlt"><td>${o.sicher}</td><td class="aus">Geldmarkt</td><td>–</td><td>${(cash * 100).toFixed(0)} %</td></tr>
     </tbody></table>
-    <div class="notiz">Signal auf Basis des letzten <b>abgeschlossenen</b> Monats.
-    Der laufende Monat wird verworfen — sonst beruht die Rangliste auf wenigen
-    Handelstagen, die als volle Monatsrendite gelesen würden.</div>`;
+    ${notiz}`;
 }
 
 // ---------- Backtest ----------
 function zeichneBacktest(o) {
-  const k = Bot.kennzahlen(verlauf);
+  const ppj = Bot.periodenProJahr(o.einheit);
+  const k = Bot.kennzahlen(verlauf, ppj);
+  const tag = o.einheit === 'tag';
   $('btZeitraum').textContent = `${datum(verlauf[0].datum)} – ${datum(verlauf[verlauf.length - 1].datum)}`;
 
   $('kacheln').innerHTML = `
     <div><span class="zahl">${pz(k.cagr, 1).replace(' %', '')}</span><span class="was">Rendite p.a. %</span></div>
     <div><span class="zahl">${(k.maxDrawdown * 100).toFixed(0)}</span><span class="was">Max Drawdown %</span></div>
     <div><span class="zahl">${k.sharpe.toFixed(2)}</span><span class="was">Sharpe</span></div>
-    <div><span class="zahl">${Math.round(k.positiveMonate * 100)}</span><span class="was">Positive Monate %</span></div>`;
+    <div><span class="zahl">${Math.round(k.positivAnteil * 100)}</span><span class="was">Positive ${tag ? 'Tage' : 'Monate'} %</span></div>`;
 
   kurve(verlauf);
 
   $('btNotiz').innerHTML = `
     <div class="notiz">Sharpe ${k.sharpe.toFixed(2)} ± ${k.sharpeFehler.toFixed(2)}
-    bei ${k.monate} Monaten. Plausibler Bereich:
+    bei ${k.n} ${periodenWortDativ(o, k.n === 1)}. Plausibler Bereich:
     <b>${(k.sharpe - 2 * k.sharpeFehler).toFixed(2)} bis ${(k.sharpe + 2 * k.sharpeFehler).toFixed(2)}</b>.
     Ein Backtest-Sharpe ist eine Schätzung, kein Messwert.</div>
-    <div class="notiz">Schlechtester Monat: <b>${pz(k.schlechtesterMonat, 1)}</b>.
-    Der Drawdown ist monatlich gemessen — Verluste innerhalb eines Monats
-    tauchen hier nicht auf, der reale Wert liegt darunter.</div>
-    ${k.monate < 120 ? '<div class="notiz gelb">Weniger als 10 Jahre Daten. Für eine belastbare Aussage zu wenig.</div>' : ''}`;
+    <div class="notiz">Schlechtester${tag ? ' Tag' : ' Monat'}: <b>${pz(k.schlechtesteRendite, 1)}</b>.
+    ${tag
+      ? 'Der Drawdown ist auf Schlusskursbasis gemessen — Verluste innerhalb eines Handelstages (Intraday) tauchen hier nicht auf, der reale Wert liegt darunter.'
+      : 'Der Drawdown ist monatlich gemessen — Verluste innerhalb eines Monats tauchen hier nicht auf, der reale Wert liegt darunter.'}</div>
+    ${k.n < ppj * 10 ? '<div class="notiz gelb">Weniger als 10 Jahre Daten. Für eine belastbare Aussage zu wenig.</div>' : ''}`;
 }
 
 function kurve(v) {
@@ -507,9 +547,9 @@ function kurve(v) {
     fill: 'none', stroke: '#1F4B7A', 'stroke-width': 1.8 });
 
   const a = el('text', { x: links, y: H - 6, class: 'axis' });
-  a.textContent = datum(v[0].datum).slice(0, 7);
+  a.textContent = datum(v[0].datum);
   const b = el('text', { x: W, y: H - 6, class: 'axis', 'text-anchor': 'end' });
-  b.textContent = datum(v[v.length - 1].datum).slice(0, 7) + '  ·  rot = Drawdown';
+  b.textContent = datum(v[v.length - 1].datum) + '  ·  rot = Drawdown';
 }
 
 // ---------- Zufallsvergleich ----------
@@ -520,8 +560,9 @@ function zeichneZufall(o) {
   if (!z) { $('zufall').innerHTML = ''; return; }
 
   const schlaegt = z.anteilSchlechter;
+  const proPeriode = o.einheit === 'tag' ? 'Ø Tagesrendite' : 'Ø Monatsrendite';
   $('zufall').innerHTML = `
-    <table><thead><tr><th></th><th>Ø Monatsrendite</th></tr></thead><tbody>
+    <table><thead><tr><th></th><th>${proPeriode}</th></tr></thead><tbody>
       <tr><td>Zufall (Mittel)</td><td>${pz(z.zufallMittel)}</td></tr>
       <tr><td>Zufall (5.–95. Perzentil)</td><td>${pz(z.p05)} bis ${pz(z.p95)}</td></tr>
       <tr class="gewaehlt"><td>Strategie</td><td>${pz(z.strategie)}</td></tr>
@@ -540,16 +581,17 @@ function zeichneZufall(o) {
 function zeichneRegime(o) {
   const referenz = reihe.ticker.includes('SPY') ? 'SPY' : reihe.ticker[0];
   const anleihe = reihe.ticker.includes('IEF') ? 'IEF' : o.sicher;
-  const reg = Bot.regime(reihe, verlauf, referenz, anleihe);
+  const reg = Bot.regime(reihe, verlauf, referenz, anleihe, { einheit: o.einheit });
   const dur = Bot.durststrecken(verlauf, 5);
+  const einheitSpalte = o.einheit === 'tag' ? 'Tage' : 'Monate';
 
   let html = '';
   if (reg && reg.length) {
-    html += `<table><thead><tr><th>Phase</th><th>Monate</th>
+    html += `<table><thead><tr><th>Phase</th><th>${einheitSpalte}</th>
       <th>Strategie p.a.</th><th>${referenz} p.a.</th><th>Vorsprung</th></tr></thead><tbody>` +
       reg.map(r => `<tr>
         <td>${r.regime}</td>
-        <td>${r.monate} (${Math.round(r.anteil * 100)} %)</td>
+        <td>${r.n} (${Math.round(r.anteil * 100)} %)</td>
         <td class="${r.strategiePa >= 0 ? 'pos' : 'neg'}">${pz(r.strategiePa, 1)}</td>
         <td class="${r.referenzPa >= 0 ? 'pos' : 'neg'}">${pz(r.referenzPa, 1)}</td>
         <td class="${r.vorsprung >= 0 ? 'pos' : 'neg'}">${pz(r.vorsprung, 1)}</td>
@@ -568,19 +610,22 @@ function zeichneRegime(o) {
   }
 
   if (dur.length) {
+    const ppj = Bot.periodenProJahr(o.einheit);
+    const zweiJahre = ppj * 2;
+    const datumKurz = d => o.einheit === 'tag' ? datum(d) : datum(d).slice(0, 7);
     html += `<h2 style="margin-top:28px">Längste Durststrecken</h2>
-      <table><thead><tr><th>Von</th><th>Bis</th><th>Monate</th><th>Tiefster Stand</th></tr></thead><tbody>` +
+      <table><thead><tr><th>Von</th><th>Bis</th><th>${einheitSpalte}</th><th>Tiefster Stand</th></tr></thead><tbody>` +
       dur.map(d => `<tr>
-        <td>${datum(d.von).slice(0, 7)}</td>
-        <td>${datum(d.bis).slice(0, 7)}${d.laufend ? ' *' : ''}</td>
-        <td>${d.monate}</td>
+        <td>${datumKurz(d.von)}</td>
+        <td>${datumKurz(d.bis)}${d.laufend ? ' *' : ''}</td>
+        <td>${d.n}</td>
         <td class="neg">${pz(d.tiefster, 1)}</td>
       </tr>`).join('') + '</tbody></table>';
 
-    const laengste = dur[0].monate;
-    html += `<div class="notiz${laengste > 24 ? ' warn' : ''}">
-      Längste Phase unter dem alten Höchststand: <b>${laengste} Monate</b>.
-      ${laengste > 24
+    const laengste = dur[0].n;
+    html += `<div class="notiz${laengste > zweiJahre ? ' warn' : ''}">
+      Längste Phase unter dem alten Höchststand: <b>${laengste} ${einheitSpalte}</b>.
+      ${laengste > zweiJahre
         ? 'Über zwei Jahre. Ein Drawdown von wenigen Prozent klingt erträglich — so lange zu warten ist etwas anderes, und der Grund, warum die meisten im ungeeignetsten Moment aufgeben.'
         : 'Das ist auszuhalten.'}
       ${dur.some(d => d.laufend) ? ' Mit * markierte Phasen laufen noch.' : ''}</div>`;
@@ -595,16 +640,20 @@ function zeichneWalkForward() {
   $('walkforward').innerHTML = '<div class="notiz">Rechnet…</div>';
 
   setTimeout(() => {
+    const ppj = Bot.periodenProJahr(o.einheit);
     let wf;
     try {
-      wf = Bot.walkForward(reihe, { sicher: o.sicher, kosten: o.kosten });
+      wf = Bot.walkForward(reihe, { sicher: o.sicher, kosten: o.kosten, einheit: o.einheit });
     } catch (e) {
+      const mindestens = o.einheit === 'tag'
+        ? 'mindestens etwa eineinhalb Jahre Tagesdaten'
+        : 'mindestens etwa 10 Jahre Daten';
       $('walkforward').innerHTML = `<div class="notiz warn">${e.message}
-        — für Walk-Forward werden mindestens etwa 10 Jahre Daten gebraucht.</div>`;
+        — für Walk-Forward werden ${mindestens} gebraucht.</div>`;
       return;
     }
 
-    const fest = Bot.kennzahlen(verlauf);
+    const fest = Bot.kennzahlen(verlauf, ppj);
     const k = wf.kennzahlen;
     const s = wf.stabilitaet;
 
@@ -636,7 +685,7 @@ function zeichneWalkForward() {
       <th>Training bis</th><th>Gewählt</th><th>Sharpe Training</th><th>Rendite Handel</th>
       </tr></thead><tbody>` +
       wf.protokoll.map(p => `<tr>
-        <td>${datum(p.trainingBis).slice(0, 7)}</td>
+        <td>${o.einheit === 'tag' ? datum(p.trainingBis) : datum(p.trainingBis).slice(0, 7)}</td>
         <td>Top ${p.topN} · ${p.perioden}</td>
         <td>${p.sharpeTraining.toFixed(2)}</td>
         <td class="${p.rendite >= 0 ? 'pos' : 'neg'}">${pz(p.rendite, 1)}</td>
@@ -648,8 +697,22 @@ function zeichneWalkForward() {
 
 // ---------- Paper-Trading-Journal ----------
 const P_KEY = 'paper_journal_v2';
-const BACKTEST_ERWARTUNG = 0.0833;   // CAGR aus dem 19-Jahres-Backtest
-const MONATS_STD = 0.028;
+
+// Basis eines Signals als Journal-Schluessel: Monat (YYYY-MM) im
+// Monatsmodus, volles Datum (YYYY-MM-DD) im Day-Trading-Modus.
+function basisString(sig, einheit) {
+  return einheit === 'tag' ? datum(sig.basis) : datum(sig.basis).slice(0, 7);
+}
+
+// Mittelwert und Streuung je Periode aus dem aktuell geladenen
+// Backtest - ersetzt eine feste Erwartung, die nur fuer den
+// urspruenglichen Monats-Backtest gestimmt haette.
+function backtestStatistik() {
+  const r = verlauf.map(v => v.rendite);
+  const mittel = r.reduce((a, b) => a + b, 0) / r.length;
+  const std = Math.sqrt(r.reduce((a, b) => a + (b - mittel) ** 2, 0) / (r.length - 1));
+  return { mittel, std };
+}
 
 function pLaden() {
   try { return JSON.parse(localStorage.getItem(P_KEY)) || []; }
@@ -676,7 +739,8 @@ function zeichneJournal(sig, o) {
     <div><span class="zahl">${n ? Math.round(treffer * 100) : '—'}</span><span class="was">Positive %</span></div>`;
 
   // Eintragen oder nachtragen
-  const basis = sig ? datum(sig.basis).slice(0, 7) : null;
+  const tag = o.einheit === 'tag';
+  const basis = sig ? basisString(sig, o.einheit) : null;
   const schonDa = basis && journal.some(e => e.basis === basis);
   const offen = journal.filter(e => e.rendite === null || e.rendite === undefined);
 
@@ -687,7 +751,7 @@ function zeichneJournal(sig, o) {
       .map(([t, w]) => `${t} ${Math.round(w * 100)} %`).join(' · ');
     html += `<fieldset style="margin-top:18px"><legend>Signal eintragen</legend>
       <p style="margin:0 0 6px"><b>${basis}</b> — ${pos}</p>
-      <button id="pEintragen">Diesen Monat eintragen</button></fieldset>`;
+      <button id="pEintragen">${tag ? 'Diesen Handelstag eintragen' : 'Diesen Monat eintragen'}</button></fieldset>`;
   } else if (schonDa) {
     html += `<div class="notiz">Für ${basis} ist bereits ein Eintrag vorhanden.
       Er wird nicht überschrieben.</div>`;
@@ -698,7 +762,7 @@ function zeichneJournal(sig, o) {
       <label for="pWelcher">Eintrag</label>
       <select id="pWelcher">${offen.map(e =>
         `<option value="${e.basis}">${e.basis}</option>`).join('')}</select>
-      <label for="pRendite">Monatsrendite in Prozent</label>
+      <label for="pRendite">${tag ? 'Tagesrendite' : 'Monatsrendite'} in Prozent</label>
       <input type="number" id="pRendite" step="0.01" placeholder="z. B. 1.85 oder -0.60">
       <button id="pNachtragen">Nachtragen</button></fieldset>`;
   }
@@ -729,15 +793,18 @@ function zeichneJournal(sig, o) {
   if (!n) {
     $('pUrteil').innerHTML = '<div class="notiz">Aussagekraft entsteht erst nach etwa drei Jahren. Bis dahin gilt: nur eintragen, nicht deuten.</div>';
   } else {
-    const erwartet = Math.pow(1 + BACKTEST_ERWARTUNG, n / 12) - 1;
+    const ppj = Bot.periodenProJahr(o.einheit);
+    const { mittel: mittelBacktest, std: stdBacktest } = backtestStatistik();
+    const erwartet = Math.pow(1 + mittelBacktest, n) - 1;
     const mittel = bewertet.reduce((a, e) => a + e.rendite, 0) / n;
-    const se = MONATS_STD / Math.sqrt(n);
-    const abw = (mittel - BACKTEST_ERWARTUNG / 12) / se;
-    let u = `<div class="notiz">Backtest-Erwartung für ${n} ${n === 1 ? 'Monat' : 'Monate'}:
+    const se = stdBacktest / Math.sqrt(n);
+    const abw = (mittel - mittelBacktest) / se;
+    const wortEin = periodenWort(o, true), wortMehr = periodenWort(o, false);
+    let u = `<div class="notiz">Backtest-Erwartung für ${n} ${n === 1 ? wortEin : wortMehr}:
       <b>${pz(erwartet)}</b>. Tatsächlich: <b>${pz(kum)}</b>.
       Abweichung: <b>${abw >= 0 ? '+' : ''}${abw.toFixed(1)} Standardfehler</b>.</div>`;
-    if (n < 36) {
-      u += `<div class="notiz gelb">Bei ${n} ${n === 1 ? 'Monat' : 'Monaten'} ist praktisch
+    if (n < ppj * 3) {
+      u += `<div class="notiz gelb">Bei ${n} ${periodenWortDativ(o, n === 1)} ist praktisch
         jedes Ergebnis mit dem Backtest vereinbar — auch ein sehr gutes und ein sehr
         schlechtes. Diese Zahl ist noch kein Urteil über die Strategie.</div>`;
     } else if (Math.abs(abw) > 2) {
@@ -750,7 +817,7 @@ function zeichneJournal(sig, o) {
 }
 
 function pEintragen(sig, o) {
-  const basis = datum(sig.basis).slice(0, 7);
+  const basis = basisString(sig, o.einheit);
   if (journal.some(e => e.basis === basis)) return;
   const g = {};
   for (const [t, w] of Object.entries(sig.gewichte)) if (w > 0.001) g[t] = w;
@@ -803,10 +870,11 @@ $('pImport').onclick = () => {
 };
 
 // ---------- Hebel ----------
-function zeichneHebel() {
+function zeichneHebel(o) {
+  const ppj = Bot.periodenProJahr(o.einheit);
   const stufen = [1, 1.25, 1.5, 2, 2.5, 3];
   const zeilen = stufen.map(f => {
-    const h = Bot.hebel(verlauf, f, 0.06, 0.30);
+    const h = Bot.hebel(verlauf, f, 0.06, 0.30, ppj);
     return `<tr class="${f === 1 ? 'gewaehlt' : ''}">
       <td>${f.toFixed(2)}x</td>
       <td class="${h.cagr >= 0 ? 'pos' : 'neg'}">${pz(h.cagr, 1)}</td>
@@ -820,9 +888,9 @@ function zeichneHebel() {
     <th>Hebel</th><th>Rendite p.a.</th><th>Max DD</th><th>Finanzierung</th><th>Liquidationen</th>
     </tr></thead><tbody>${zeilen}</tbody></table>`;
 
-  const kel = Bot.kelly(verlauf);
+  const kel = Bot.kelly(verlauf, 0.036, ppj);
   const beste = [1, 1.25, 1.5, 2, 2.5, 3]
-    .map(f => Bot.hebel(verlauf, f, 0.06, 0.30))
+    .map(f => Bot.hebel(verlauf, f, 0.06, 0.30, ppj))
     .reduce((a, b) => b.cagr > a.cagr ? b : a);
 
   $('kelly').innerHTML = `
@@ -873,6 +941,19 @@ $('beispiel').onclick = () => {
 };
 $('rechnen').onclick = rechnen;
 $('wfStart').onclick = zeichneWalkForward;
+$('einheit').addEventListener('change', () => {
+  const tag = $('einheit').value === 'tag';
+  $('periodenLabel').textContent = tag
+    ? 'Momentum-Zeiträume (Handelstage)' : 'Momentum-Zeiträume (Monate)';
+  $('perioden').value = tag ? '5,10,20' : '3,6,12';
+  $('modushinweis').innerHTML = tag ? `
+    <div class="notiz gelb">Day-Trading rechnet und schichtet an jedem
+    Handelstag um — die Kosten je Umschichtung schlagen entsprechend
+    öfter zu. Für ein tagesaktuelles Signal muss die Kursdatei jeden
+    Handelstag neu geladen werden; bei monatlicher Aktualisierung
+    (siehe Anleitung) ist das Signal bis zu vier Wochen alt.</div>` : '';
+  if (reihe) rechnen();
+});
 $('topn').addEventListener('input', e => $('topnWert').textContent = e.target.value);
 $('kosten').addEventListener('input', e =>
   $('kostenWert').textContent = (e.target.value / 10).toFixed(2).replace('.', ',') + ' %');

@@ -59,3 +59,22 @@ laden. Sie bleibt im Browser gespeichert, bis du sie ersetzt.
 
 Dauert etwa fuenf Minuten. Mehr ist nicht zu tun, und mehr waere
 auch nicht besser.
+
+## Handelsmodus
+
+Im Bereich **Bot** unter Einstellungen laesst sich der Handelsmodus
+umstellen:
+
+- **Monatlich (Positionen halten)** - der urspruengliche Modus. Signal
+  und Backtest laufen auf Monatsenden, Umschichtung einmal im Monat.
+- **Taeglich (Day-Trading)** - Signal und Backtest laufen auf jedem
+  einzelnen Handelstag der geladenen CSV. Das bedeutet deutlich mehr
+  Umschichtung und damit deutlich mehr Kosten je Zeiteinheit - der Bot
+  zeigt das in den Kennzahlen.
+
+Wichtig: der Datenweg aus Schritt 4 (einmal im Monat eine CSV aus
+Colab) bleibt bei Day-Trading derselbe. Ein Signal ist nur so aktuell
+wie die zuletzt geladene Zeile der CSV - fuer ein tagesaktuelles
+Signal muss die CSV an jedem Handelstag neu erzeugt und geladen
+werden, sonst ist das Signal tage- bis wochenalt. Der Bot weist im
+Day-Trading-Modus darauf hin, wie alt der letzte Datenpunkt ist.

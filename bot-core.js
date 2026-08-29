@@ -84,11 +84,34 @@
     return raus.slice(0, -1);
   }
 
+  // ---------- Handelspunkte (Monat oder Tag) ----------
+  /* Alle Funktionen unten rechnen auf einer Folge von "Punkten" -
+     mal Monatsenden, mal jedem einzelnen Handelstag. Fuer
+     Day-Trading braucht es keine Sonderbehandlung des letzten
+     Punktes: jede Zeile der CSV ist bereits ein abgeschlossener
+     Schlusskurs, anders als ein unvollstaendiger laufender Monat. */
+  function handelspunkte(reihe, einheit) {
+    return einheit === 'tag' ? reihe.daten.slice() : monatsenden(reihe);
+  }
+
+  // Anzahl Punkte pro Jahr - fuer Annualisierung von Rendite und Sharpe.
+  function periodenProJahr(einheit) {
+    return einheit === 'tag' ? 252 : 12;
+  }
+
+  function tagePlus(d, n) {
+    const t = new Date(d);
+    t.setUTCDate(t.getUTCDate() + n);
+    return t;
+  }
+
   // ---------- Volatilitaet ----------
-  function volaAmMonatsende(reihe, monate, fenster) {
+  // Rechnet an jedem uebergebenen Punkt (Monatsende oder Handelstag)
+  // die annualisierte Vola aus den vorangehenden taeglichen Renditen.
+  function volaAmPunkt(reihe, punkte, fenster) {
     const werte = [];
     let zeiger = 0;
-    for (const m of monate) {
+    for (const m of punkte) {
       while (zeiger < reihe.daten.length - 1 &&
              reihe.daten[zeiger + 1].datum <= m.datum) zeiger++;
       const v = {};
@@ -151,22 +174,25 @@
   function backtest(reihe, opt) {
     const o = Object.assign({
       sicher: 'SHY', topN: 4, perioden: [3, 6, 12],
-      volaFenster: 60, kosten: 0.002
+      volaFenster: 60, kosten: 0.002, einheit: 'monat'
     }, opt || {});
 
     if (!reihe.ticker.includes(o.sicher)) {
       throw new Error(`Geldmarkt-Ticker ${o.sicher} fehlt in den Daten`);
     }
 
-    const monate = monatsenden(reihe);
-    const vola = volaAmMonatsende(reihe, monate, o.volaFenster);
+    // einheit 'monat': Positionen werden am Monatsende neu gewichtet.
+    // einheit 'tag': an jedem Handelstag - deutlich mehr Umschichtung,
+    // die Kosten je Umschichtung schlagen entsprechend oefter zu.
+    const punkte = handelspunkte(reihe, o.einheit);
+    const vola = volaAmPunkt(reihe, punkte, o.volaFenster);
     const start = Math.max(...o.perioden);
 
     let kapital = 1, alt = {};
     const verlauf = [];
 
-    for (let i = start; i < monate.length - 1; i++) {
-      const mom = momentum(monate, i, o.perioden, reihe.ticker);
+    for (let i = start; i < punkte.length - 1; i++) {
+      const mom = momentum(punkte, i, o.perioden, reihe.ticker);
       if (!isFinite(mom[o.sicher])) continue;
 
       const { gewichte: g, gewaehlt } = gewichte(mom, vola[i], reihe.ticker, o.sicher, o.topN);
@@ -176,7 +202,7 @@
       let r = 0;
       for (const t in g) {
         if (g[t] <= 0) continue;
-        r += g[t] * (monate[i + 1].werte[t] / monate[i].werte[t] - 1);
+        r += g[t] * (punkte[i + 1].werte[t] / punkte[i].werte[t] - 1);
       }
 
       let umschichtung = 0;
@@ -186,23 +212,26 @@
 
       kapital *= (1 + r);
       verlauf.push({
-        datum: monate[i + 1].datum, rendite: r, equity: kapital,
+        datum: punkte[i + 1].datum, rendite: r, equity: kapital,
         gewaehlt, cash: g[o.sicher]
       });
       alt = g;
     }
 
-    if (!verlauf.length) throw new Error('Zu wenige Monate fuer einen Backtest');
+    if (!verlauf.length) throw new Error('Zu wenige Perioden fuer einen Backtest');
     return verlauf;
   }
 
   // ---------- Kennzahlen ----------
-  function kennzahlen(verlauf) {
+  // periodenProJahrWert: 12 fuer Monatsrenditen, 252 fuer Tagesrenditen.
+  function kennzahlen(verlauf, periodenProJahrWert) {
+    periodenProJahrWert = periodenProJahrWert || 12;
     const r = verlauf.map(v => v.rendite);
     const eq = verlauf.map(v => v.equity);
-    const jahre = r.length / 12;
+    const jahre = r.length / periodenProJahrWert;
     const mittel = r.reduce((a, b) => a + b, 0) / r.length;
     const std = Math.sqrt(r.reduce((a, b) => a + (b - mittel) ** 2, 0) / (r.length - 1));
+    const sharpe = std > 0 ? (mittel / std) * Math.sqrt(periodenProJahrWert) : 0;
 
     let spitze = -Infinity, maxDd = 0;
     for (const w of eq) {
@@ -211,24 +240,25 @@
     }
 
     return {
-      monate: r.length, jahre,
+      n: r.length, periodenProJahr: periodenProJahrWert, jahre,
       endwert: eq[eq.length - 1],
       cagr: Math.pow(eq[eq.length - 1], 1 / jahre) - 1,
       maxDrawdown: maxDd,
-      sharpe: std > 0 ? (mittel / std) * Math.sqrt(12) : 0,
-      positiveMonate: r.filter(x => x > 0).length / r.length,
-      schlechtesterMonat: Math.min(...r),
+      sharpe,
+      positivAnteil: r.filter(x => x > 0).length / r.length,
+      schlechtesteRendite: Math.min(...r),
       // Standardfehler: ein gemessener Sharpe ist eine Schaetzung,
       // kein Messwert.
-      sharpeFehler: Math.sqrt((1 + 0.5 * ((mittel / std) * Math.sqrt(12)) ** 2) / jahre)
+      sharpeFehler: Math.sqrt((1 + 0.5 * sharpe ** 2) / jahre)
     };
   }
 
   // ---------- Hebel ----------
-  function hebel(verlauf, faktor, finanzierungPa, marginSchwelle) {
+  function hebel(verlauf, faktor, finanzierungPa, marginSchwelle, periodenProJahrWert) {
     finanzierungPa = finanzierungPa === undefined ? 0.06 : finanzierungPa;
     marginSchwelle = marginSchwelle === undefined ? 0.30 : marginSchwelle;
-    const kosten = finanzierungPa / 12 * (faktor - 1);
+    periodenProJahrWert = periodenProJahrWert || 12;
+    const kosten = finanzierungPa / periodenProJahrWert * (faktor - 1);
 
     let kapital = 1, aktiv = true, liquidationen = 0;
     let spitze = -Infinity, maxDd = 0;
@@ -249,7 +279,7 @@
       maxDd = Math.min(maxDd, kapital / spitze - 1);
     }
 
-    const jahre = verlauf.length / 12;
+    const jahre = verlauf.length / periodenProJahrWert;
     return {
       faktor, endwert: kapital,
       cagr: Math.pow(kapital, 1 / jahre) - 1,
@@ -259,12 +289,13 @@
     };
   }
 
-  function kelly(verlauf, risikofreiPa) {
+  function kelly(verlauf, risikofreiPa, periodenProJahrWert) {
     risikofreiPa = risikofreiPa === undefined ? 0.036 : risikofreiPa;
+    periodenProJahrWert = periodenProJahrWert || 12;
     const r = verlauf.map(v => v.rendite);
     const mittel = r.reduce((a, b) => a + b, 0) / r.length;
     const std = Math.sqrt(r.reduce((a, b) => a + (b - mittel) ** 2, 0) / (r.length - 1));
-    const mu = mittel * 12, sigma = std * Math.sqrt(12);
+    const mu = mittel * periodenProJahrWert, sigma = std * Math.sqrt(periodenProJahrWert);
     const ueberschuss = mu - risikofreiPa;
     return {
       renditePa: mu, volaPa: sigma,
@@ -277,14 +308,14 @@
   // ---------- Aktuelles Signal ----------
   function aktuellesSignal(reihe, opt) {
     const o = Object.assign({
-      sicher: 'SHY', topN: 4, perioden: [3, 6, 12], volaFenster: 60
+      sicher: 'SHY', topN: 4, perioden: [3, 6, 12], volaFenster: 60, einheit: 'monat'
     }, opt || {});
-    const monate = monatsenden(reihe);
-    const vola = volaAmMonatsende(reihe, monate, o.volaFenster);
-    const i = monate.length - 1;
-    const mom = momentum(monate, i, o.perioden, reihe.ticker);
+    const punkte = handelspunkte(reihe, o.einheit);
+    const vola = volaAmPunkt(reihe, punkte, o.volaFenster);
+    const i = punkte.length - 1;
+    const mom = momentum(punkte, i, o.perioden, reihe.ticker);
     const { gewichte: g, gewaehlt } = gewichte(mom, vola[i], reihe.ticker, o.sicher, o.topN);
-    return { basis: monate[i].datum, momentum: mom, vola: vola[i], gewichte: g, gewaehlt };
+    return { basis: punkte[i].datum, momentum: mom, vola: vola[i], gewichte: g, gewaehlt };
   }
 
   // ---------- Teilzeitraum ----------
@@ -312,16 +343,39 @@
      Faellt das Ergebnis deutlich gegenueber dem festen Backtest ab,
      hing dessen gute Zahl daran, die richtigen Parameter zu kennen -
      und die kennt man im Voraus nie. */
-  const WF_KANDIDATEN = [];
+  const WF_KANDIDATEN_MONAT = [];
   [3, 4, 5, 6].forEach(n =>
     [[3, 6, 12], [1, 3, 6], [6, 12], [2, 4, 8, 12]].forEach(p =>
-      WF_KANDIDATEN.push({ topN: n, perioden: p })));
+      WF_KANDIDATEN_MONAT.push({ topN: n, perioden: p })));
+
+  // Tages-Pendant der Monatskandidaten, grob im selben Verhaeltnis
+  // (~20 Handelstage je Monat).
+  const WF_KANDIDATEN_TAG = [];
+  [2, 3, 4, 5, 6].forEach(n =>
+    [[5, 10, 20], [3, 5, 10], [10, 20], [5, 10, 20, 60]].forEach(p =>
+      WF_KANDIDATEN_TAG.push({ topN: n, perioden: p })));
 
   function walkForward(reihe, opt) {
+    const einheit = (opt && opt.einheit) || 'monat';
+    const istTag = einheit === 'tag';
     const o = Object.assign({
-      sicher: 'SHY', trainingsjahre: 8, handelsjahre: 1,
-      kosten: 0.002, kandidaten: WF_KANDIDATEN
+      sicher: 'SHY', einheit,
+      // In Jahren (monat) bzw. Kalendertagen (tag).
+      trainingsfenster: istTag ? 365 : 8,
+      handelsfenster: istTag ? 90 : 1,
+      // Vorlauf vor dem Handelsfenster fuer die Momentum-Berechnung -
+      // liegt vollstaendig in der Vergangenheit, ist also kein
+      // Zukunftswissen.
+      vorlauf: istTag ? 120 : 2,
+      kosten: 0.002,
+      kandidaten: istTag ? WF_KANDIDATEN_TAG : WF_KANDIDATEN_MONAT
     }, opt || {});
+
+    const schritt = (d, n) => istTag ? tagePlus(d, n) : jahrePlus(d, n);
+    const ppj = periodenProJahr(einheit);
+    const minTraining = istTag ? 120 : 500;
+    const minHandel = istTag ? 40 : 300;
+    const minSchritteBacktest = istTag ? 15 : 6;
 
     const start = reihe.daten[0].datum;
     const ende = reihe.daten[reihe.daten.length - 1].datum;
@@ -332,32 +386,30 @@
     let notbremse = 0;
 
     while (notbremse++ < 60) {
-      const trainEnde = jahrePlus(fenster, o.trainingsjahre);
+      const trainEnde = schritt(fenster, o.trainingsfenster);
       if (trainEnde >= ende) break;
 
-      const handelEnde = jahrePlus(trainEnde, o.handelsjahre);
+      const handelEnde = schritt(trainEnde, o.handelsfenster);
       const training = ausschnitt(reihe, fenster, trainEnde);
-      // Vorlauf fuer die Momentum-Berechnung - liegt vollstaendig
-      // in der Vergangenheit, ist also kein Zukunftswissen.
-      const handel = ausschnitt(reihe, jahrePlus(trainEnde, -2),
+      const handel = ausschnitt(reihe, schritt(trainEnde, -o.vorlauf),
         handelEnde < ende ? handelEnde : new Date(ende.getTime() + 864e5));
 
-      if (training.daten.length < 500 || handel.daten.length < 300) break;
+      if (training.daten.length < minTraining || handel.daten.length < minHandel) break;
 
       let bester = null, besterWert = -Infinity;
       for (const k of o.kandidaten) {
         try {
-          const v = backtest(training, Object.assign({ sicher: o.sicher, kosten: o.kosten }, k));
-          if (v.length < 6) continue;
-          const s = kennzahlen(v).sharpe;
+          const v = backtest(training, Object.assign({ sicher: o.sicher, kosten: o.kosten, einheit }, k));
+          if (v.length < minSchritteBacktest) continue;
+          const s = kennzahlen(v, ppj).sharpe;
           if (isFinite(s) && s > besterWert) { besterWert = s; bester = k; }
         } catch (e) { /* Kandidat unbrauchbar */ }
       }
 
-      if (!bester) { fenster = jahrePlus(fenster, o.handelsjahre); continue; }
+      if (!bester) { fenster = schritt(fenster, o.handelsfenster); continue; }
 
       try {
-        const v = backtest(handel, Object.assign({ sicher: o.sicher, kosten: o.kosten }, bester));
+        const v = backtest(handel, Object.assign({ sicher: o.sicher, kosten: o.kosten, einheit }, bester));
         const echt = v.filter(p => p.datum >= trainEnde);
         if (echt.length) {
           abschnitte.push(...echt);
@@ -366,13 +418,13 @@
             topN: bester.topN,
             perioden: bester.perioden.join('/'),
             sharpeTraining: besterWert,
-            monate: echt.length,
+            n: echt.length,
             rendite: echt.reduce((a, p) => a * (1 + p.rendite), 1) - 1
           });
         }
       } catch (e) { /* Abschnitt unbrauchbar */ }
 
-      fenster = jahrePlus(fenster, o.handelsjahre);
+      fenster = schritt(fenster, o.handelsfenster);
     }
 
     if (!abschnitte.length) throw new Error('Zu wenige Daten fuer Walk-Forward');
@@ -389,7 +441,7 @@
       verlauf.push(Object.assign({}, p, { equity: kapital }));
     }
 
-    const k = kennzahlen(verlauf);
+    const k = kennzahlen(verlauf, ppj);
     const trainingMittel = protokoll.reduce((a, p) => a + p.sharpeTraining, 0) / protokoll.length;
     const kombis = protokoll.map(p => p.topN + '/' + p.perioden);
     const zaehler = {};
@@ -419,29 +471,39 @@
      Nachhinein. Diese Analyse dient dem Verstaendnis, nicht der
      Steuerung. Wer daraus eine Handelsregel ableitet, baut
      Zukunftswissen ein. */
-  function regime(reihe, verlauf, referenz, anleihe) {
+  function regime(reihe, verlauf, referenz, anleihe, opt) {
     referenz = referenz || 'SPY';
     anleihe = anleihe || 'IEF';
+    const o = Object.assign({ einheit: 'monat' }, opt || {});
     if (!reihe.ticker.includes(referenz)) return null;
     const hatAnleihe = reihe.ticker.includes(anleihe);
 
-    const monate = monatsenden(reihe);
+    const ppj = periodenProJahr(o.einheit);
+    // Trendfenster in Punkten: 6 Monate, oder bei Tagesdaten das
+    // Aequivalent von rund einem halben Jahr Handelstagen.
+    const trendFenster = o.trendFenster || (o.einheit === 'tag' ? 126 : 6);
+    // Bei Tagesdaten gibt es ein Vielfaches mehr Punkte je Regime -
+    // eine Mindestgroesse von 3 waere fast immer erfuellt und
+    // bedeutungslos.
+    const minGroesse = o.minGroesse || (o.einheit === 'tag' ? 20 : 3);
+
+    const punkte = handelspunkte(reihe, o.einheit);
     const index = {};
-    monate.forEach((m, i) => index[m.datum.toISOString().slice(0, 10)] = i);
+    punkte.forEach((m, i) => index[m.datum.toISOString().slice(0, 10)] = i);
 
     let hoch = -Infinity;
     const zuordnung = {};
-    for (let i = 6; i < monate.length; i++) {
-      const kurs = monate[i].werte[referenz];
+    for (let i = trendFenster; i < punkte.length; i++) {
+      const kurs = punkte[i].werte[referenz];
       hoch = Math.max(hoch, kurs);
-      const trend = kurs / monate[i - 6].werte[referenz] - 1;
+      const trend = kurs / punkte[i - trendFenster].werte[referenz] - 1;
       const anlTrend = hatAnleihe
-        ? monate[i].werte[anleihe] / monate[i - 6].werte[anleihe] - 1 : 1;
+        ? punkte[i].werte[anleihe] / punkte[i - trendFenster].werte[anleihe] - 1 : 1;
 
       let r = 'Bulle';
       if (trend < 0) r = (anlTrend < 0) ? 'Zinsschock' : 'Baer';
       else if (kurs < hoch * 0.95) r = 'Erholung';
-      zuordnung[monate[i].datum.toISOString().slice(0, 10)] = r;
+      zuordnung[punkte[i].datum.toISOString().slice(0, 10)] = r;
     }
 
     const gruppen = {};
@@ -451,24 +513,24 @@
       if (!r) continue;
       const i = index[s];
       if (i === undefined || i < 1) continue;
-      const refRendite = monate[i].werte[referenz] / monate[i - 1].werte[referenz] - 1;
+      const refRendite = punkte[i].werte[referenz] / punkte[i - 1].werte[referenz] - 1;
       (gruppen[r] = gruppen[r] || []).push({ rendite: p.rendite, referenz: refRendite, cash: p.cash });
     }
 
     const gesamt = Object.values(gruppen).reduce((a, g) => a + g.length, 0);
     return Object.entries(gruppen)
-      .filter(([, g]) => g.length >= 3)
+      .filter(([, g]) => g.length >= minGroesse)
       .map(([name, g]) => {
-        const stratPa = Math.pow(g.reduce((a, x) => a * (1 + x.rendite), 1), 12 / g.length) - 1;
-        const refPa = Math.pow(g.reduce((a, x) => a * (1 + x.referenz), 1), 12 / g.length) - 1;
+        const stratPa = Math.pow(g.reduce((a, x) => a * (1 + x.rendite), 1), ppj / g.length) - 1;
+        const refPa = Math.pow(g.reduce((a, x) => a * (1 + x.referenz), 1), ppj / g.length) - 1;
         return {
-          regime: name, monate: g.length, anteil: g.length / gesamt,
+          regime: name, n: g.length, anteil: g.length / gesamt,
           strategiePa: stratPa, referenzPa: refPa, vorsprung: stratPa - refPa,
           positive: g.filter(x => x.rendite > 0).length / g.length,
           cashMittel: g.reduce((a, x) => a + (x.cash || 0), 0) / g.length
         };
       })
-      .sort((a, b) => b.monate - a.monate);
+      .sort((a, b) => b.n - a.n);
   }
 
   // ---------- Durststrecken ----------
@@ -489,8 +551,8 @@
         if (start === null) { start = p.datum; tiefster = dd; }
         tiefster = Math.min(tiefster, dd);
       } else if (start !== null) {
-        phasen.push({ von: start, bis: p.datum, tiefster, monate: 0 });
-        phasen[phasen.length - 1].monate =
+        phasen.push({ von: start, bis: p.datum, tiefster, n: 0 });
+        phasen[phasen.length - 1].n =
           verlauf.filter(x => x.datum >= start && x.datum <= p.datum).length;
         start = null;
       }
@@ -499,26 +561,26 @@
       const letzte = verlauf[verlauf.length - 1].datum;
       phasen.push({
         von: start, bis: letzte, tiefster, laufend: true,
-        monate: verlauf.filter(x => x.datum >= start).length
+        n: verlauf.filter(x => x.datum >= start).length
       });
     }
-    return phasen.sort((a, b) => b.monate - a.monate).slice(0, anzahl);
+    return phasen.sort((a, b) => b.n - a.n).slice(0, anzahl);
   }
 
   // ---------- Zufallsvergleich ----------
   /* Nullhypothese: zufaellig gewaehlte Anlagen bei gleicher
-     Monatszahl. Schlaegt eine Strategie den Zufall nicht, traegt
+     Periodenzahl. Schlaegt eine Strategie den Zufall nicht, traegt
      ihr Signal nichts bei. */
   function zufallsvergleich(reihe, verlauf, opt) {
-    const o = Object.assign({ sicher: 'SHY', laeufe: 500, seed: 42 }, opt || {});
-    const monate = monatsenden(reihe);
+    const o = Object.assign({ sicher: 'SHY', laeufe: 500, seed: 42, einheit: 'monat' }, opt || {});
+    const punkte = handelspunkte(reihe, o.einheit);
     const anlagen = reihe.ticker.filter(t => t !== o.sicher);
-    if (monate.length < 3) return null;
+    if (punkte.length < 3) return null;
 
     const renditen = [];
-    for (let i = 1; i < monate.length; i++) {
+    for (let i = 1; i < punkte.length; i++) {
       for (const t of anlagen) {
-        renditen.push(monate[i].werte[t] / monate[i - 1].werte[t] - 1);
+        renditen.push(punkte[i].werte[t] / punkte[i - 1].werte[t] - 1);
       }
     }
 
@@ -547,7 +609,7 @@
   }
 
   const api = {
-    parseCsv, pruefeQualitaet, monatsenden, backtest,
+    parseCsv, pruefeQualitaet, monatsenden, periodenProJahr, backtest,
     kennzahlen, hebel, kelly, aktuellesSignal,
     walkForward, regime, durststrecken, zufallsvergleich
   };
