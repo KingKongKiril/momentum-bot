@@ -331,6 +331,13 @@
       sicher: 'SHY', topN: 4, perioden: [3, 6, 12], volaFenster: 60, einheit: 'monat'
     }, opt || {});
     const punkte = handelspunkte(reihe, o.einheit);
+    if (!punkte.length) {
+      // Bei einheit 'monat' braucht es mindestens einen vollstaendig
+      // abgeschlossenen Monat - monatsenden() verwirft den laufenden.
+      throw new Error(o.einheit === 'tag'
+        ? 'Zu wenige Daten fuer ein Signal - mindestens ein Handelstag noetig'
+        : 'Zu wenige Daten fuer ein Signal - mindestens ein vollstaendig abgeschlossener Monat noetig');
+    }
     const vola = volaAmPunkt(reihe, punkte, o.volaFenster);
     const i = punkte.length - 1;
     const mom = momentum(punkte, i, o.perioden, reihe.ticker);

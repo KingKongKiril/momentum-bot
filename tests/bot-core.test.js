@@ -225,6 +225,14 @@ test('aktuellesSignal: Gewichte summieren sich auf 1', () => {
   assert.ok(Math.abs(summeGewichte(sig.gewichte) - 1) < 1e-9);
 });
 
+test('aktuellesSignal: wirft eine klare Meldung statt zu crashen, wenn kein voller Monat vorliegt', () => {
+  // Nur wenige Tage, alle im selben Kalendermonat - monatsenden() hat
+  // dafuer keinen abgeschlossenen Monat.
+  const r = synthReihe(5, { seed: 3 });
+  assert.throws(() => Bot.aktuellesSignal(r, { sicher: 'SHY', einheit: 'monat' }),
+    /Zu wenige Daten fuer ein Signal/);
+});
+
 test('aktuellesSignal: gewaehlt enthaelt hoechstens topN Anlagen', () => {
   const r = synthReihe(900, { ticker: ['SPY', 'TLT', 'GLD', 'DBC', 'IWM', 'SHY'] });
   const sig = Bot.aktuellesSignal(r, { sicher: 'SHY', topN: 2, perioden: [3, 6, 12] });

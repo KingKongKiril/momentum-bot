@@ -160,6 +160,27 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--tinte);
   <div id="qualitaet"></div>
 </section>
 
+<section>
+  <div class="eyebrow"><span>Optional</span><span>Live-Recherche</span></div>
+  <fieldset>
+    <legend>Recherche-Bot (eigener Server)</legend>
+    <p class="hinweis">
+      Ein separater Dienst (<code>research-bot/</code> in diesem Repo, selbst
+      gehostet) holt live Kurse, Nachrichten-Sentiment, Makro-Termine und
+      technische Indikatoren und stellt sie per HTTP bereit — er läuft nicht
+      von selbst, siehe <code>research-bot/README.md</code>. Ersetzt bei
+      Bedarf den manuellen CSV-Upload; die Momentum-Rechnung unten bleibt
+      davon unberührt.
+    </p>
+    <label for="rbUrl">Server-Adresse</label>
+    <input type="text" id="rbUrl" placeholder="http://localhost:8787">
+    <button id="rbKurse">Live-Kurse laden</button>
+    <button class="sek" id="rbKontext">Kontext anzeigen</button>
+    <div id="rbStatus"></div>
+  </fieldset>
+  <div id="rbKontextBox"></div>
+</section>
+
 <div id="rest" class="versteckt">
 
 <section>
@@ -281,6 +302,13 @@ footer{margin-top:56px;padding-top:18px;border-top:2px solid var(--tinte);
 let reihe = null, verlauf = null, rechnungen = 0;
 
 const $ = id => document.getElementById(id);
+// Fuer jeden Text, der von aussen kommt (CSV-Header, Recherche-Bot-
+// Antworten inkl. RSS-Schlagzeilen) und per innerHTML gerendert wird -
+// sonst waere eine boesartige Schlagzeile oder ein manipulierter
+// Ticker-Name eine Code-Ausfuehrung im Browser (XSS).
+const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[c]));
 const CACHE_KEY = 'momentum_daten_v1';
 
 // ---------- Daten im Browser behalten ----------
@@ -306,7 +334,7 @@ function cacheStatus(gespeichert, quelle, letzterKurs) {
   const alt = tage > 45;
   $('cachestatus').innerHTML = `
     <div class="notiz${alt ? ' warn' : ''}">
-      Gespeicherte Daten geladen (${quelle}), letzter Kurs vom
+      Gespeicherte Daten geladen (${escapeHtml(quelle)}), letzter Kurs vom
       <b>${letzterKurs.toISOString().slice(0, 10)}</b> — ${tage} Tage alt.
       ${alt ? 'Für ein aktuelles Signal ist das zu alt. Neue CSV aus Colab laden.'
             : 'Neu laden, sobald ein Monat abgeschlossen ist.'}
@@ -953,6 +981,118 @@ $('beispiel').onclick = () => {
      Kurse. Sie dienen nur dazu, die Oberfläche auszuprobieren — jede Kennzahl
      daraus ist bedeutungslos.</div>`);
 };
+// ---------- Recherche-Bot (optionaler eigener Server) ----------
+const RB_URL_KEY = 'research_bot_url';
+(function () {
+  try {
+    const gespeichert = localStorage.getItem(RB_URL_KEY);
+    if (gespeichert) $('rbUrl').value = gespeichert;
+  } catch (e) {}
+})();
+$('rbUrl').addEventListener('change', () => {
+  try { localStorage.setItem(RB_URL_KEY, $('rbUrl').value.trim()); } catch (e) {}
+});
+
+function rbBasis() {
+  const roh = $('rbUrl').value.trim();
+  if (!roh) { alert('Server-Adresse des Recherche-Bots eintragen (siehe research-bot/README.md).'); return null; }
+  return roh.replace(/\/+$/, '');
+}
+
+$('rbKurse').onclick = async () => {
+  const basis = rbBasis();
+  if (!basis) return;
+  $('rbStatus').innerHTML = '<div class="notiz">Lade Live-Kurse…</div>';
+  try {
+    const antwort = await fetch(basis + '/kurse.csv');
+    if (!antwort.ok) throw new Error('HTTP ' + antwort.status);
+    const text = await antwort.text();
+    $('einfuegen').value = '';
+    einlesen(text, { quelle: 'Live: ' + basis });
+    $('rbStatus').innerHTML = '<div class="notiz">Live-Kurse geladen von ' + escapeHtml(basis) + '.</div>';
+  } catch (e) {
+    $('rbStatus').innerHTML = `<div class="notiz warn">Live-Kurse konnten nicht geladen werden: ${escapeHtml(e.message)}.
+      Läuft der Recherche-Bot unter dieser Adresse? CORS erlaubt?</div>`;
+  }
+};
+
+$('rbKontext').onclick = async () => {
+  const basis = rbBasis();
+  if (!basis) return;
+  $('rbKontextBox').innerHTML = '<div class="notiz">Lade Kontext…</div>';
+  let sig;
+  try {
+    const antwort = await fetch(basis + '/signal.json');
+    if (!antwort.ok) throw new Error('HTTP ' + antwort.status);
+    sig = await antwort.json();
+  } catch (e) {
+    $('rbKontextBox').innerHTML = `<div class="notiz warn">Kontext konnte nicht geladen werden: ${escapeHtml(e.message)}.</div>`;
+    return;
+  }
+  $('rbKontextBox').innerHTML = zeichneRbKontext(sig);
+};
+
+// Der Recherche-Bot laeuft unter einer vom Nutzer eingetragenen Adresse -
+// jedes Feld in seiner Antwort (insbesondere RSS-Schlagzeilen, die von
+// Dritten stammen) ist externer, nicht vertrauenswuerdiger Text und wird
+// deshalb ausnahmslos ueber escapeHtml() gerendert.
+function zeichneRbKontext(sig) {
+  let html = `<div class="notiz gelb">${escapeHtml(sig.hinweis || '')}</div>`;
+
+  // Sentiment
+  if (sig.sentiment && sig.sentiment.anzahlSchlagzeilen) {
+    const s = sig.sentiment;
+    const einordnung = s.mittelwert > 0.15 ? 'eher positiv'
+      : (s.mittelwert < -0.15 ? 'eher negativ' : 'gemischt/neutral');
+    html += `<h2 style="margin-top:24px">Nachrichten-Sentiment</h2>
+      <p>${escapeHtml(s.anzahlBewertet)} von ${escapeHtml(s.anzahlSchlagzeilen)} Schlagzeilen mit Lexikon-Treffer,
+      Mittelwert <b>${s.mittelwert.toFixed(2)}</b> (${einordnung}), Stand ${escapeHtml(s.stand || '–')}.</p>`;
+    if (s.top && s.top.length) {
+      html += '<table><thead><tr><th style="text-align:left">Schlagzeile</th><th>Score</th></tr></thead><tbody>' +
+        s.top.slice(0, 5).map(h => `<tr><td style="text-align:left">${escapeHtml(h.titel)}</td>
+          <td class="${h.score >= 0 ? 'pos' : 'neg'}">${h.score.toFixed(2)}</td></tr>`).join('') +
+        '</tbody></table>';
+    }
+  }
+
+  // Makro
+  if (sig.makro && sig.makro.ereignisse && sig.makro.ereignisse.length) {
+    html += `<h2 style="margin-top:24px">Makro-Termine</h2>
+      <table><thead><tr><th style="text-align:left">Termin</th><th style="text-align:left">Datum</th></tr></thead><tbody>` +
+      sig.makro.ereignisse.map(e => {
+        const d = e.datum && e.datum.slice ? e.datum.slice(0, 10) : new Date(e.datum).toISOString().slice(0, 10);
+        return `<tr><td style="text-align:left">${escapeHtml(e.beschreibung)}</td>
+        <td style="text-align:left">${escapeHtml(d)}</td></tr>`;
+      }).join('') +
+      '</tbody></table>';
+    if (sig.makro.fomcVeraltet) {
+      html += `<div class="notiz warn">${escapeHtml(sig.makro.hinweis || '')}</div>`;
+    }
+  }
+
+  // Technische Indikatoren
+  if (sig.indikatoren) {
+    html += `<h2 style="margin-top:24px">Technische Indikatoren</h2>
+      <table><thead><tr><th>Ticker</th><th>Kurs</th><th>RSI(14)</th>
+      <th>SMA20</th><th>SMA200</th><th>Über SMA200</th></tr></thead><tbody>` +
+      Object.entries(sig.indikatoren).map(([t, i]) => `<tr>
+        <td>${escapeHtml(t)}</td>
+        <td>${i.kurs !== null ? i.kurs.toFixed(2) : '–'}</td>
+        <td>${i.rsi14 !== null ? i.rsi14.toFixed(0) : '–'}</td>
+        <td>${i.sma20 !== null ? i.sma20.toFixed(2) : '–'}</td>
+        <td>${i.sma200 !== null ? i.sma200.toFixed(2) : '–'}</td>
+        <td>${i.ueberSma200 === null ? '–' : (i.ueberSma200 ? 'ja' : 'nein')}</td>
+      </tr>`).join('') + '</tbody></table>';
+  }
+
+  if (sig.kurse && sig.kurse.fehler && sig.kurse.fehler.length) {
+    html += `<div class="notiz warn">Beim Kursabruf fehlgeschlagen: ` +
+      sig.kurse.fehler.map(f => `${escapeHtml(f.ticker)} (${escapeHtml(f.fehler)})`).join(', ') + '</div>';
+  }
+
+  return html;
+}
+
 $('rechnen').onclick = rechnen;
 $('wfStart').onclick = zeichneWalkForward;
 $('einheit').addEventListener('change', () => {

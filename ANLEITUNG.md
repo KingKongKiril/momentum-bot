@@ -78,3 +78,23 @@ wie die zuletzt geladene Zeile der CSV - fuer ein tagesaktuelles
 Signal muss die CSV an jedem Handelstag neu erzeugt und geladen
 werden, sonst ist das Signal tage- bis wochenalt. Der Bot weist im
 Day-Trading-Modus darauf hin, wie alt der letzte Datenpunkt ist.
+
+## Live-Daten statt monatlichem Colab-Upload (optional)
+
+Wer den manuellen Colab-Schritt (oder das taegliche Neuladen im
+Day-Trading-Modus) nicht von Hand machen will, kann stattdessen den
+[`research-bot/`](research-bot/README.md) selbst hosten - ein
+eigenstaendiger, dauerhaft laufender Dienst, der Kursdaten automatisch
+holt und dazu Nachrichten-Sentiment, Makro-Termine und technische
+Indikatoren liefert.
+
+Im Bereich **Bot** gibt es dafuer den Abschnitt "Live-Recherche": dort
+die Server-Adresse eintragen, dann **Live-Kurse laden** (ersetzt den
+CSV-Upload) und optional **Kontext anzeigen** (zeigt Sentiment/Makro/
+Indikatoren in einer eigenen Box). Das ist rein additiv - die
+Momentum-Rechnung selbst bleibt exakt dieselbe wie beim manuellen
+CSV-Upload, nur die Datenquelle ist eine andere.
+
+Das braucht einen eigenen, dauerhaft laufenden Server (Details und
+Hosting-Optionen in `research-bot/README.md`) - ohne das laeuft der
+Bot weiterhin genauso wie zuvor mit dem manuellen Colab-Upload.
