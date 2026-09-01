@@ -1,7 +1,10 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { ersterFreitagDesMonats, naechsteNfp, naechsteEreignisse, FOMC_TERMINE } = require('../lib/makro');
+const {
+  ersterFreitagDesMonats, naechsteNfp, cpiFenster, naechsteCpiFenster,
+  naechsteEreignisse, FOMC_TERMINE
+} = require('../lib/makro');
 
 test('ersterFreitagDesMonats: findet den korrekten ersten Freitag', () => {
   // Februar 2024 beginnt an einem Donnerstag -> erster Freitag ist der 2.
@@ -28,6 +31,34 @@ test('naechsteNfp: ein Termin am Stichtag selbst zaehlt noch mit', () => {
   const ersterFreitag = ersterFreitagDesMonats(2024, 5); // Juni 2024
   const termine = naechsteNfp(ersterFreitag, 1);
   assert.equal(termine[0].getTime(), ersterFreitag.getTime());
+});
+
+test('cpiFenster: liefert ein 10.-15.-Fenster fuer den angegebenen Monat', () => {
+  const f = cpiFenster(2024, 2); // Maerz 2024
+  assert.equal(f.von.toISOString().slice(0, 10), '2024-03-10');
+  assert.equal(f.bis.toISOString().slice(0, 10), '2024-03-15');
+});
+
+test('naechsteCpiFenster: ein laufendes Fenster (heute liegt darin) zaehlt noch mit', () => {
+  const mittenDrin = new Date('2024-03-12T00:00:00Z');
+  const fenster = naechsteCpiFenster(mittenDrin, 1);
+  assert.equal(fenster[0].von.toISOString().slice(0, 10), '2024-03-10');
+});
+
+test('naechsteCpiFenster: ein bereits abgeschlossenes Fenster wird uebersprungen', () => {
+  const nachDemFenster = new Date('2024-03-20T00:00:00Z');
+  const fenster = naechsteCpiFenster(nachDemFenster, 1);
+  assert.equal(fenster[0].von.toISOString().slice(0, 10), '2024-04-10');
+});
+
+test('naechsteEreignisse: enthaelt CPI-Ereignisse mit von/bis, datum bleibt innerhalb des Suchfensters', () => {
+  const ab = new Date('2024-03-12T00:00:00Z'); // mitten im Maerz-CPI-Fenster
+  const r = naechsteEreignisse(ab, 10);
+  const cpi = r.ereignisse.find(e => e.typ === 'CPI');
+  assert.ok(cpi, 'CPI-Ereignis sollte vorhanden sein, auch wenn "von" vor "ab" liegt');
+  assert.equal(cpi.von.toISOString().slice(0, 10), '2024-03-10');
+  assert.equal(cpi.bis.toISOString().slice(0, 10), '2024-03-15');
+  assert.ok(cpi.datum >= ab, 'datum muss trotz laufendem Fenster >= ab bleiben');
 });
 
 test('naechsteEreignisse: FOMC- und NFP-Termine chronologisch sortiert innerhalb des Fensters', () => {

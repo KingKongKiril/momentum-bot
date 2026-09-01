@@ -1060,7 +1060,10 @@ function zeichneRbKontext(sig) {
     html += `<h2 style="margin-top:24px">Makro-Termine</h2>
       <table><thead><tr><th style="text-align:left">Termin</th><th style="text-align:left">Datum</th></tr></thead><tbody>` +
       sig.makro.ereignisse.map(e => {
-        const d = e.datum && e.datum.slice ? e.datum.slice(0, 10) : new Date(e.datum).toISOString().slice(0, 10);
+        const kurz = x => (x && x.slice ? x.slice(0, 10) : new Date(x).toISOString().slice(0, 10));
+        // CPI ist ein Fenster (von/bis), keine Punktgenauigkeit - siehe
+        // research-bot/lib/makro.js. Alle anderen Ereignisse ein Tag.
+        const d = (e.von && e.bis) ? `${kurz(e.von)} – ${kurz(e.bis)}` : kurz(e.datum);
         return `<tr><td style="text-align:left">${escapeHtml(e.beschreibung)}</td>
         <td style="text-align:left">${escapeHtml(d)}</td></tr>`;
       }).join('') +

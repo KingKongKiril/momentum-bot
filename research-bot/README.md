@@ -8,8 +8,8 @@ CORS-Gruenden nicht selbst holen darf, plus reine Rechenarbeit:
   als CSV im selben Format, das `bot-core.js` ohnehin erwartet.
 - **Nachrichten-Sentiment**: Schlagzeilen aus konfigurierbaren
   RSS-Feeds, grob per Woerterzaehlung bewertet.
-- **Makro-Kalender**: naechste FOMC-Termine und
-  Non-Farm-Payrolls-Termine.
+- **Makro-Kalender**: naechste FOMC-Termine, Non-Farm-Payrolls-Termine
+  und CPI-Veroeffentlichungsfenster.
 - **Technische Indikatoren**: SMA20/50/200, RSI(14), MACD - pro
   Ticker, aus den geladenen Kursen berechnet.
 
@@ -39,7 +39,10 @@ weiter durch.
   eingetragene Termin in der Vergangenheit liegt - dann in der Datei
   gegen die [offizielle Fed-Quelle](https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm)
   aktualisieren. Non-Farm-Payrolls dagegen ist eine feste Regel
-  (erster Freitag im Monat) und veraltet nie.
+  (erster Freitag im Monat) und veraltet nie. CPI hat kein festes
+  Datum (Bureau of Labor Statistics) - dafuer wird bewusst ein Fenster
+  (10.-15. des Monats) statt eines einzelnen Tages ausgewiesen, um
+  keine falsche Praezision vorzutaeuschen.
 - **Sentiment und Makro fliessen nicht in die Momentum-Rechnung ein.**
   `bot-core.js` bleibt unveraendert: dieselbe, auditierbare
   Momentum-Strategie wie zuvor. Die zusaetzlichen Signale erscheinen in
@@ -85,6 +88,7 @@ CSV-Upload:
 | `INTERVALL_KURSE_MIN` | `15` | Kurs-Refresh in Minuten |
 | `INTERVALL_SENTIMENT_MIN` | `60` | Sentiment-Refresh in Minuten |
 | `INTERVALL_MAKRO_MIN` | `1440` | Makro-Refresh in Minuten |
+| `CACHE_DATEI` | `research-bot/.cache/zustand.json` | Zwischenspeicher-Datei fuer Neustarts, leerer Wert deaktiviert |
 
 RSS-Feed-URLs sind erfahrungsgemaess nicht ewig stabil - bricht ein
 Feed weg, ueber `RSS_FEEDS` durch einen aktuellen ersetzen.
@@ -107,6 +111,13 @@ hat ein 10-Sekunden-Timeout und ueberlappende Refreshs werden
 uebersprungen statt parallel zu laufen - ein einzelner haengender
 Server (Stooq, ein RSS-Feed) kann den Dienst also nicht dauerhaft
 blockieren.
+
+Der letzte gute Stand wird zusaetzlich auf Platte zwischengespeichert
+(`CACHE_DATEI`) - ein Neustart (Absturz, Deploy, manuelles Strg+C und
+`npm start`) beginnt damit nicht leer, sondern zeigt sofort wieder den
+zuletzt bekannten Stand, bis der naechste Refresh durchgelaufen ist.
+Strg+C (bzw. `SIGTERM`) beendet den Dienst sauber mit einer Meldung
+statt eines stillen Kills.
 
 ## Endpunkte
 

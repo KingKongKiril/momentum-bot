@@ -21,6 +21,7 @@ const { holeKurse } = require('./lib/kurse');
 const { holeSentiment } = require('./lib/sentiment');
 const { naechsteEreignisse } = require('./lib/makro');
 const { schnappschuss } = require('./lib/indikatoren');
+const { speichere, lade } = require('./lib/persistenz');
 
 // ---------- Zustand ----------
 // Letzter bekannter guter Stand pro Datenart, plus Fehler des letzten
@@ -40,6 +41,24 @@ const zustand = {
 // parallel loslaufen zu lassen.
 const laeuft = { kurse: false, sentiment: false };
 
+// ---------- Persistenz ----------
+// Ueberlebt einen Neustart: ohne das ist der Dienst bis zum ersten
+// erfolgreichen Refresh leer (siehe lib/persistenz.js).
+function persistiere() {
+  if (!config.cacheDatei) return;
+  speichere({ kurse: zustand.kurse, sentiment: zustand.sentiment, makro: zustand.makro }, config.cacheDatei);
+}
+
+function wiederherstellen() {
+  if (!config.cacheDatei) return false;
+  const gespeichert = lade(config.cacheDatei);
+  if (!gespeichert) return false;
+  if (gespeichert.kurse) zustand.kurse = gespeichert.kurse;
+  if (gespeichert.sentiment) zustand.sentiment = gespeichert.sentiment;
+  if (gespeichert.makro) zustand.makro = gespeichert.makro;
+  return true;
+}
+
 async function aktualisiereKurse() {
   if (laeuft.kurse) { console.warn('[kurse] vorheriger Refresh laeuft noch, dieser Tick wird uebersprungen'); return; }
   laeuft.kurse = true;
@@ -51,6 +70,7 @@ async function aktualisiereKurse() {
     }
     zustand.kurse = { csv, indikatoren, geladen, fehler, stand: new Date().toISOString() };
     delete zustand.letzterFehler.kurse;
+    persistiere();
   } catch (e) {
     zustand.letzterFehler.kurse = { nachricht: e.message, zeit: new Date().toISOString() };
     console.error('[kurse] Refresh fehlgeschlagen:', e.message);
@@ -66,6 +86,7 @@ async function aktualisiereSentiment() {
     const daten = await holeSentiment(config.rssFeeds);
     zustand.sentiment = { daten, stand: new Date().toISOString() };
     delete zustand.letzterFehler.sentiment;
+    persistiere();
   } catch (e) {
     zustand.letzterFehler.sentiment = { nachricht: e.message, zeit: new Date().toISOString() };
     console.error('[sentiment] Refresh fehlgeschlagen:', e.message);
@@ -77,6 +98,7 @@ async function aktualisiereSentiment() {
 function aktualisiereMakro() {
   // Reine Rechnung, kein Netzwerk - kann nicht fehlschlagen.
   zustand.makro = { daten: naechsteEreignisse(new Date()), stand: new Date().toISOString() };
+  persistiere();
 }
 
 function planeIntervall(fn, minuten) {
@@ -184,6 +206,8 @@ function start() {
     process.exit(1);
   }
 
+  const wiederhergestellt = wiederherstellen();
+
   planeIntervall(aktualisiereKurse, config.intervallKurseMin);
   planeIntervall(aktualisiereSentiment, config.intervallSentimentMin);
   planeIntervall(aktualisiereMakro, config.intervallMakroMin);
@@ -201,11 +225,25 @@ function start() {
     process.exit(1);
   });
 
+  // Strg+C soll eine klare Meldung geben statt den Prozess kommentarlos
+  // zu killen - vor allem hilfreich, wenn mehrere Instanzen laufen und
+  // man nicht sicher ist, welche gerade beendet wurde.
+  function beenden(signal) {
+    console.log(`\n${signal} empfangen, beende Recherche-Bot...`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 2000).unref();
+  }
+  process.on('SIGINT', () => beenden('SIGINT'));
+  process.on('SIGTERM', () => beenden('SIGTERM'));
+
   server.listen(config.port, () => {
     console.log(`Recherche-Bot laeuft auf http://localhost:${config.port}`);
     console.log(`  Ticker: ${config.ticker.join(', ')}`);
     console.log(`  Aktualisierung Kurse alle ${config.intervallKurseMin} Min, ` +
       `Sentiment alle ${config.intervallSentimentMin} Min, Makro alle ${config.intervallMakroMin} Min`);
+    if (wiederhergestellt) {
+      console.log(`  Gespeicherter Stand von der letzten Ausfuehrung geladen (${config.cacheDatei}).`);
+    }
     console.log('');
     console.log(`  Naechster Schritt: bot.html im Browser oeffnen -> Abschnitt`);
     console.log(`  "Live-Recherche" -> Server-Adresse "http://localhost:${config.port}" eintragen.`);
@@ -215,4 +253,4 @@ function start() {
 
 if (require.main === module) start();
 
-module.exports = { server, zustand, baueSignal, start };
+module.exports = { server, zustand, baueSignal, start, persistiere, wiederherstellen };

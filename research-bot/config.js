@@ -3,6 +3,8 @@
    weitere Anpassung sofort etwas Sinnvolles liefert. */
 'use strict';
 
+const path = require('path');
+
 function liste(env, standard) {
   const roh = process.env[env];
   return roh ? roh.split(',').map(s => s.trim()).filter(Boolean) : standard;
@@ -30,5 +32,11 @@ module.exports = {
   // Aktualisierungsintervalle in Minuten.
   intervallKurseMin: zahl('INTERVALL_KURSE_MIN', 15),
   intervallSentimentMin: zahl('INTERVALL_SENTIMENT_MIN', 60),
-  intervallMakroMin: zahl('INTERVALL_MAKRO_MIN', 24 * 60)
+  intervallMakroMin: zahl('INTERVALL_MAKRO_MIN', 24 * 60),
+
+  // Zwischenspeicher auf Platte, damit ein Neustart nicht mit leeren
+  // Daten beginnt. Leerer Wert deaktiviert die Persistenz.
+  cacheDatei: process.env.CACHE_DATEI !== undefined
+    ? process.env.CACHE_DATEI
+    : path.join(__dirname, '.cache', 'zustand.json')
 };

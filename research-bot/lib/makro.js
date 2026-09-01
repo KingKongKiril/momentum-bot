@@ -16,10 +16,11 @@
       Quelle zum Abgleichen/Aktualisieren:
       https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
 
-   CPI-Veroeffentlichungen haben kein festes Datum (Bureau of Labor
-   Statistics, ueblicherweise Mitte des Monats) - hier bewusst nur als
-   grobe Woche ausgewiesen, nicht als Tageszahl, um keine falsche
-   Praezision vorzutaeuschen. */
+   3. CPI-Veroeffentlichungen haben kein festes Datum (Bureau of Labor
+      Statistics, in der Praxis meist ein Dienstag/Mittwoch zwischen dem
+      10. und 15. des Monats) - hier bewusst als Fenster (von/bis)
+      ausgewiesen, nicht als einzelner Tag, um keine falsche Praezision
+      vorzutaeuschen. Wer den exakten Tag braucht: bls.gov/cpi. */
 'use strict';
 
 // Stand: siehe Quelle oben. Bei Bedarf ergaenzen/aktualisieren.
@@ -54,8 +55,32 @@ function naechsteNfp(ab, anzahl) {
   return raus;
 }
 
-// Alle Ereignisse (FOMC + NFP) in den naechsten "tageVoraus" Tagen ab
-// "ab", chronologisch sortiert.
+// Grobes CPI-Veroeffentlichungsfenster fuer einen Monat - bewusst ein
+// Zeitraum (10.-15.), kein einzelner Tag, siehe Dateikopf.
+function cpiFenster(jahr, monatNull) {
+  return {
+    von: new Date(Date.UTC(jahr, monatNull, 10)),
+    bis: new Date(Date.UTC(jahr, monatNull, 15))
+  };
+}
+
+// Naechste "anzahl" CPI-Fenster ab einem Stichtag - ein Fenster zaehlt
+// noch, solange sein Ende nicht vor "ab" liegt.
+function naechsteCpiFenster(ab, anzahl) {
+  anzahl = anzahl || 2;
+  const raus = [];
+  let jahr = ab.getUTCFullYear(), monat = ab.getUTCMonth();
+  while (raus.length < anzahl) {
+    const fenster = cpiFenster(jahr, monat);
+    if (fenster.bis >= ab) raus.push(fenster);
+    monat++;
+    if (monat > 11) { monat = 0; jahr++; }
+  }
+  return raus;
+}
+
+// Alle Ereignisse (FOMC + NFP + CPI-Fenster) in den naechsten
+// "tageVoraus" Tagen ab "ab", chronologisch sortiert.
 function naechsteEreignisse(ab, tageVoraus) {
   ab = ab || new Date();
   tageVoraus = tageVoraus || 45;
@@ -81,6 +106,21 @@ function naechsteEreignisse(ab, tageVoraus) {
     }
   }
 
+  for (const fenster of naechsteCpiFenster(abTag, 3)) {
+    if (fenster.von <= grenze) {
+      // "datum" = Fensterende, nicht -beginn: naechsteCpiFenster()
+      // liefert auch ein Fenster, in dem "abTag" bereits steckt (von
+      // vor abTag, bis danach) - "datum" muss dann trotzdem >= abTag
+      // bleiben, sonst wuerde ein laufendes CPI-Fenster wie ein
+      // bereits vergangener Termin sortiert. Die eigentliche Aussage
+      // steckt ohnehin in von/bis, nicht in "datum".
+      ereignisse.push({
+        typ: 'CPI', datum: fenster.bis, von: fenster.von, bis: fenster.bis,
+        beschreibung: 'CPI-Bericht (ungefaehr, siehe bls.gov/cpi)'
+      });
+    }
+  }
+
   ereignisse.sort((a, b) => a.datum - b.datum);
 
   const letzterFomc = fomcDaten[fomcDaten.length - 1];
@@ -97,4 +137,7 @@ function naechsteEreignisse(ab, tageVoraus) {
   };
 }
 
-module.exports = { ersterFreitagDesMonats, naechsteNfp, naechsteEreignisse, FOMC_TERMINE };
+module.exports = {
+  ersterFreitagDesMonats, naechsteNfp, cpiFenster, naechsteCpiFenster,
+  naechsteEreignisse, FOMC_TERMINE
+};
