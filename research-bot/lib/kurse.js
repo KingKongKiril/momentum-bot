@@ -7,6 +7,8 @@
    Funktion und ohne Netz testbar. */
 'use strict';
 
+const { fetchMitTimeout } = require('./fetchTimeout');
+
 // Stooq erwartet US-Ticker mit ".us"-Suffix.
 function stooqSymbol(ticker) {
   return ticker.toLowerCase() + '.us';
@@ -71,9 +73,11 @@ function mergeReihen(proTicker) {
 }
 
 // Orchestriert den Abruf. fetchImpl ist injizierbar, damit sich die
-// Fehlerbehandlung ohne echtes Netzwerk testen laesst.
+// Fehlerbehandlung ohne echtes Netzwerk testen laesst. Ohne Angabe wird
+// mit Timeout geholt - ein haengender Stooq-Request darf einen
+// dauerhaft laufenden Dienst nicht auf unbestimmte Zeit blockieren.
 async function holeKurse(ticker, fetchImpl) {
-  fetchImpl = fetchImpl || fetch;
+  fetchImpl = fetchImpl || fetchMitTimeout(10000);
   const proTicker = {};
   const fehler = [];
 

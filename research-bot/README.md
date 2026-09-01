@@ -102,7 +102,11 @@ Ein `node server.js`, das dauerhaft laeuft - z. B.:
 Der Dienst haelt bei einem fehlgeschlagenen Refresh (Netzwerkfehler,
 Feed nicht erreichbar) immer die letzten guten Daten - er liefert
 nie eine leere Antwort nur weil ein einzelner Abruf misslang, siehe
-`GET /health` fuer den Status des letzten Versuchs.
+`GET /health` fuer den Status des letzten Versuchs. Jeder Netzwerk-Abruf
+hat ein 10-Sekunden-Timeout und ueberlappende Refreshs werden
+uebersprungen statt parallel zu laufen - ein einzelner haengender
+Server (Stooq, ein RSS-Feed) kann den Dienst also nicht dauerhaft
+blockieren.
 
 ## Endpunkte
 

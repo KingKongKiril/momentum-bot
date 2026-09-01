@@ -8,6 +8,7 @@
 'use strict';
 
 const { POSITIV, NEGATIV } = require('./lexikon');
+const { fetchMitTimeout } = require('./fetchTimeout');
 
 // Reine Bewertung eines einzelnen Textes. score in [-1, 1].
 function bewerteText(text) {
@@ -45,9 +46,11 @@ function parseRssTitel(xml) {
   return titel;
 }
 
-// Orchestriert den Abruf mehrerer Feeds. fetchImpl injizierbar fuer Tests.
+// Orchestriert den Abruf mehrerer Feeds. fetchImpl injizierbar fuer Tests,
+// sonst mit Timeout - ein haengender Feed darf den Refresh-Zyklus nicht
+// auf unbestimmte Zeit blockieren.
 async function holeSentiment(feedUrls, fetchImpl, maxProFeed) {
-  fetchImpl = fetchImpl || fetch;
+  fetchImpl = fetchImpl || fetchMitTimeout(10000);
   maxProFeed = maxProFeed || 15;
 
   const alleSchlagzeilen = [];

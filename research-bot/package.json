@@ -3,6 +3,9 @@
   "private": true,
   "description": "Eigenstaendiger Recherche-Dienst: live Kurse (Stooq), Nachrichten-Sentiment (RSS), Makro-Kalender und technische Indikatoren ueber HTTP mit CORS - fuer bot.html als optionale Live-Datenquelle.",
   "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
     "test": "node --test"

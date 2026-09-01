@@ -34,7 +34,15 @@ const zustand = {
   letzterFehler: {}
 };
 
+// Verhindert ueberlappende Refreshs: faellt ein Durchlauf (trotz
+// Fetch-Timeout in kurse.js/sentiment.js) laenger aus als sein eigenes
+// Intervall, soll der naechste Tick warten statt einen zweiten
+// parallel loslaufen zu lassen.
+const laeuft = { kurse: false, sentiment: false };
+
 async function aktualisiereKurse() {
+  if (laeuft.kurse) { console.warn('[kurse] vorheriger Refresh laeuft noch, dieser Tick wird uebersprungen'); return; }
+  laeuft.kurse = true;
   try {
     const { csv, proTicker, geladen, fehler } = await holeKurse(config.ticker);
     const indikatoren = {};
@@ -46,10 +54,14 @@ async function aktualisiereKurse() {
   } catch (e) {
     zustand.letzterFehler.kurse = { nachricht: e.message, zeit: new Date().toISOString() };
     console.error('[kurse] Refresh fehlgeschlagen:', e.message);
+  } finally {
+    laeuft.kurse = false;
   }
 }
 
 async function aktualisiereSentiment() {
+  if (laeuft.sentiment) { console.warn('[sentiment] vorheriger Refresh laeuft noch, dieser Tick wird uebersprungen'); return; }
+  laeuft.sentiment = true;
   try {
     const daten = await holeSentiment(config.rssFeeds);
     zustand.sentiment = { daten, stand: new Date().toISOString() };
@@ -57,6 +69,8 @@ async function aktualisiereSentiment() {
   } catch (e) {
     zustand.letzterFehler.sentiment = { nachricht: e.message, zeit: new Date().toISOString() };
     console.error('[sentiment] Refresh fehlgeschlagen:', e.message);
+  } finally {
+    laeuft.sentiment = false;
   }
 }
 
@@ -161,6 +175,15 @@ const server = http.createServer((req, res) => {
 });
 
 function start() {
+  // Globales fetch gibt es erst ab Node 18 - ohne das schlagen alle
+  // Refreshs sofort und dauerhaft fehl, aber der Server wuerde trotzdem
+  // "laeuft" melden. Lieber direkt beim Start klar sagen, woran es liegt.
+  if (typeof fetch !== 'function') {
+    console.error(`Node 18 oder neuer wird benoetigt (globales fetch fehlt). ` +
+      `Installierte Version: ${process.version}. Node aktualisieren, z.B. ueber https://nodejs.org`);
+    process.exit(1);
+  }
+
   planeIntervall(aktualisiereKurse, config.intervallKurseMin);
   planeIntervall(aktualisiereSentiment, config.intervallSentimentMin);
   planeIntervall(aktualisiereMakro, config.intervallMakroMin);
@@ -171,7 +194,7 @@ function start() {
   server.on('error', err => {
     if (err.code === 'EADDRINUSE') {
       console.error(`Port ${config.port} ist bereits belegt. ` +
-        'Anderen PORT waehlen oder den blockierenden Prozess beenden.');
+        `Anderen Port setzen (z.B. "PORT=8788 npm start") oder den blockierenden Prozess beenden.`);
     } else {
       console.error('Server-Fehler:', err.message);
     }
@@ -179,10 +202,14 @@ function start() {
   });
 
   server.listen(config.port, () => {
-    console.log(`Recherche-Bot laeuft auf Port ${config.port}`);
+    console.log(`Recherche-Bot laeuft auf http://localhost:${config.port}`);
     console.log(`  Ticker: ${config.ticker.join(', ')}`);
     console.log(`  Aktualisierung Kurse alle ${config.intervallKurseMin} Min, ` +
       `Sentiment alle ${config.intervallSentimentMin} Min, Makro alle ${config.intervallMakroMin} Min`);
+    console.log('');
+    console.log(`  Naechster Schritt: bot.html im Browser oeffnen -> Abschnitt`);
+    console.log(`  "Live-Recherche" -> Server-Adresse "http://localhost:${config.port}" eintragen.`);
+    console.log('  Dieses Fenster muss offen bleiben, solange der Dienst laufen soll (Strg+C zum Beenden).');
   });
 }
 
